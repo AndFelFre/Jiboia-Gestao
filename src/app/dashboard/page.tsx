@@ -22,7 +22,7 @@ import { seedDefaultPulseSurvey } from '@/app/actions/pulse'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  await seedDefaultPulseSurvey() // Garante uma pesquisa padrão para demo
+  await seedDefaultPulseSurvey({}) // Garante uma pesquisa padrão para demo
   const supabase = createServerSupabaseClientReadOnly()
 
   const { data: { user } } = await supabase.auth.getUser()

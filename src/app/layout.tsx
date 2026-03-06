@@ -42,7 +42,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const branding = await getBrandingSettings();
+  const branding = await getBrandingSettings({});
 
   return (
     <html lang="pt-BR" suppressHydrationWarning>

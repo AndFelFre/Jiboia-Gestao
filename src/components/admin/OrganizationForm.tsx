@@ -27,7 +27,7 @@ export function OrganizationForm({ initialData, onSubmit, title, actionLabel }: 
         setValue,
         watch,
         formState: { errors },
-    } = useForm<OrganizationInput>({
+    } = useForm<any>({
         resolver: zodResolver(organizationSchema),
         defaultValues: {
             name: initialData?.name || '',
@@ -100,7 +100,7 @@ export function OrganizationForm({ initialData, onSubmit, title, actionLabel }: 
                             placeholder="Ex: Minha Empresa LTDA"
                         />
                         {errors.name && (
-                            <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>
+                            <p className="mt-1 text-sm text-destructive">{(errors.name as any).message}</p>
                         )}
                     </div>
 
@@ -118,7 +118,7 @@ export function OrganizationForm({ initialData, onSubmit, title, actionLabel }: 
                             Usado nas URLs. Apenas letras minúsculas, números e hífens.
                         </p>
                         {errors.slug && (
-                            <p className="mt-1 text-sm text-destructive">{errors.slug.message}</p>
+                            <p className="mt-1 text-sm text-destructive">{(errors.slug as any).message}</p>
                         )}
                     </div>
 
@@ -136,7 +136,7 @@ export function OrganizationForm({ initialData, onSubmit, title, actionLabel }: 
                             Requer configuração CNAME no seu painel de DNS apontando para o nosso servidor.
                         </p>
                         {errors.custom_domain && (
-                            <p className="mt-1 text-sm text-destructive">{errors.custom_domain.message}</p>
+                            <p className="mt-1 text-sm text-destructive">{(errors.custom_domain as any).message}</p>
                         )}
                     </div>
                 </div>

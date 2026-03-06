@@ -40,7 +40,7 @@ export default async function MeuPerfilPage() {
     if (!user) redirect('/login')
 
     const [profileRes, pdiDataRes, onboardingRes, badgesRes, suggestionsRes] = await Promise.all([
-        getMyProfile(),
+        getMyProfile({}),
         getMyPDIData(),
         supabase
             .from('user_onboarding_progress')

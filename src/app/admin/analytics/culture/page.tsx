@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react'
 import { getPulseClimateStats, PulseClimateStats } from '../../actions/analytics'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
