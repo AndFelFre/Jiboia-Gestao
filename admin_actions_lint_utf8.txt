@@ -1,0 +1,16 @@
+﻿C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-evaluations.ts:45:47: Unexpected any. Specify a different type. [Error/@typescript-eslint/no-explicit-any]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-evaluations.ts:72:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-evaluations.ts:77:75: Unexpected any. Specify a different type. [Error/@typescript-eslint/no-explicit-any]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-position-skills.ts:26:15: 'auth' is assigned a value but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-position-skills.ts:36:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-position-skills.ts:72:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-position-skills.ts:95:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-skills.ts:36:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-skills.ts:68:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-skills.ts:100:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\performance-skills.ts:125:14: 'error' is defined but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\recruitment-candidates.ts:175:15: 'err' is assigned a value but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\sessions.ts:38:15: 'auth' is assigned a value but never used. [Error/@typescript-eslint/no-unused-vars]
+C:\Users\andre\OneDrive\├ürea de Trabalho\AVD APP\rg-digital\src\app\admin\actions\sessions.ts:42:17: 'data' is assigned a value but never used. [Error/@typescript-eslint/no-unused-vars]
+
+14 problems

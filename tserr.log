@@ -1,0 +1,32 @@
+src/app/actions/succession.ts(5,20): error TS2307: Cannot find module 'openai' or its corresponding type declarations.
+src/app/admin/actions/custom_reports.ts(6,26): error TS2307: Cannot find module '@/lib/audit' or its corresponding type declarations.
+src/app/admin/actions/custom_reports.ts(7,62): error TS2307: Cannot find module '@/utils/errors' or its corresponding type declarations.
+src/app/admin/actions/custom_reports.ts(12,33): error TS2345: Argument of type '"dashboard.view"' is not assignable to parameter of type '"org.manage" | "unit.manage" | "users.manage" | "roles.manage" | "recruitment.manage" | "onboarding.manage" | "offboarding.manage" | "documents.manage" | "requests.manage" | ... 7 more ... | "jobs.manage"'.
+src/app/admin/actions/custom_reports.ts(61,33): error TS2345: Argument of type '"dashboard.view"' is not assignable to parameter of type '"org.manage" | "unit.manage" | "users.manage" | "roles.manage" | "recruitment.manage" | "onboarding.manage" | "offboarding.manage" | "documents.manage" | "requests.manage" | ... 7 more ... | "jobs.manage"'.
+src/app/admin/actions/custom_reports.ts(83,33): error TS2345: Argument of type '"dashboard.view"' is not assignable to parameter of type '"org.manage" | "unit.manage" | "users.manage" | "roles.manage" | "recruitment.manage" | "onboarding.manage" | "offboarding.manage" | "documents.manage" | "requests.manage" | ... 7 more ... | "jobs.manage"'.
+src/app/admin/actions/custom_reports.ts(127,33): error TS2345: Argument of type '"dashboard.view"' is not assignable to parameter of type '"org.manage" | "unit.manage" | "users.manage" | "roles.manage" | "recruitment.manage" | "onboarding.manage" | "offboarding.manage" | "documents.manage" | "requests.manage" | ... 7 more ... | "jobs.manage"'.
+src/app/admin/analytics/custom/page.tsx(5,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+src/app/admin/analytics/custom/page.tsx(6,22): error TS2307: Cannot find module 'date-fns/locale' or its corresponding type declarations.
+src/app/admin/analytics/custom/page.tsx(33,26): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+src/app/admin/analytics/custom/page.tsx(37,25): error TS2353: Object literal may only specify known properties, and 'label' does not exist in type 'ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...>'.
+src/app/admin/analytics/custom/page.tsx(43,36): error TS7006: Parameter 'report' implicitly has an 'any' type.
+src/app/admin/analytics/succession/[id]/page.tsx(8,53): error TS2307: Cannot find module '@/components/ui/alert' or its corresponding type declarations.
+src/app/admin/analytics/succession/page.tsx(50,26): error TS2322: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is missing the following properties from type 'ReactPortal': children, type, props, key
+src/app/admin/analytics/succession/page.tsx(57,107): error TS2339: Property 'name' does not exist on type 'never'.
+src/app/admin/onboarding/progress/page.tsx(5,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+src/app/admin/onboarding/progress/page.tsx(6,22): error TS2307: Cannot find module 'date-fns/locale' or its corresponding type declarations.
+src/app/admin/performance/positions/[id]/page.tsx(8,34): error TS2307: Cannot find module './PositionSkillManager' or its corresponding type declarations.
+src/app/dashboard/meu-perfil/page.tsx(160,58): error TS2322: Type '{ initialItems: any[]; }' is not assignable to type 'IntrinsicAttributes & { items: Item[]; }'.
+  Property 'initialItems' does not exist on type 'IntrinsicAttributes & { items: Item[]; }'.
+src/app/recruitment/candidates/[id]/page.tsx(4,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+src/app/recruitment/candidates/[id]/page.tsx(5,22): error TS2307: Cannot find module 'date-fns/locale' or its corresponding type declarations.
+src/app/routine/actions.ts(31,46): error TS2345: Argument of type '"admin.access"' is not assignable to parameter of type '"org.manage" | "unit.manage" | "users.manage" | "roles.manage" | "recruitment.manage" | "onboarding.manage" | "offboarding.manage" | "documents.manage" | "requests.manage" | ... 7 more ... | "jobs.manage"'.
+src/app/routine/actions.ts(37,58): error TS2339: Property 'errors' does not exist on type 'ZodError<{ title: string; target_value: number; frequency: "daily" | "weekly" | "monthly"; description?: string | undefined; }>'.
+src/app/routine/actions.ts(72,58): error TS2339: Property 'errors' does not exist on type 'ZodError<{ routine_definition_id: string; achieved_value: number; notes?: string | undefined; }>'.
+src/components/ai/CultureAssistant.tsx(15,10): error TS2305: Module '"@/components/ui/badge"' has no exported member 'Button'.
+src/components/ai/CultureAssistant.tsx(64,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/recruitment/KanbanCard.tsx(8,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+src/components/ui/button.tsx(2,10): error TS2724: '"@radix-ui/react-slot"' has no exported member named 'slot'. Did you mean 'Slot'?
