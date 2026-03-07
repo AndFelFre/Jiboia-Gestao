@@ -18,19 +18,17 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const pgError = error as { code: string; message: string; details: string };
-    if (pgError.code === '23505') return 'Já existe um registro com estes dados (duplicidade).';
-    if (pgError.code === '42501') return 'Você não tem permissão para realizar esta operação no banco de dados.';
-    if (pgError.code === '23503') return 'Não é possível excluir: existem outros registros vinculados a este.';
+  const message = getErrorMessage(error)
+  const code = (error as any)?.code
+
+  if (code) {
+    return `Erro de Banco (${code}): ${message}`
   }
 
-  const message = getErrorMessage(error)
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  if (message.includes('validation')) return 'Dados inválidos. Verifique os campos preenchidos.'
+  if (message.includes('UNAUTHORIZED')) return 'Sessão expirada. Faça login novamente.'
+  if (message.includes('FORBIDDEN')) return 'Você não tem permissão para realizar esta ação.'
 
-  return 'Erro ao processar solicitação. Tente novamente mais tarde.'
+  return `Erro: ${message}`
 }
 
 export async function getLevels(orgId?: string): Promise<ActionResult<Level[]>> {
