@@ -188,7 +188,7 @@ export interface AuditLog {
 // ============================================
 
 export type PDIItemStatus = 'not_started' | 'in_progress' | 'completed' | 'cancelled'
-export type PDIItemCategory = 'course' | 'mentoring' | 'reading' | 'project' | 'leadership_rite' | 'other'
+export type PDIItemCategory = 'course' | 'mentoring' | 'reading' | 'project' | 'leadership_rite' | 'smart_goal' | 'other'
 
 export type PDIPlanType = 'development' | 'leadership_rites'
 export type DHORiteType = 'one_on_one' | 'feedback' | 'checkpoint'
@@ -277,8 +277,45 @@ export interface KpiResult {
 }
 
 // ============================================
-// ANALYTICS CUSTOMIZADO
+// AVALIAÇÃO DE DESEMPENHO (RUA + SMART)
 // ============================================
+
+export type EvaluationStatus = 'draft' | 'in_progress' | 'closed' | 'cancelled'
+export type SMARTGoalStatus = 'planned' | 'in_progress' | 'achieved' | 'partially_achieved' | 'missed'
+
+export type NineBoxQuadrant =
+  | 'dilemma' | 'rising_star' | 'star'
+  | 'questionable' | 'critical_keeper' | 'future_star'
+  | 'risk' | 'effective_specialist' | 'solid_professional'
+
+export interface PerformanceEvaluation {
+  id: string
+  org_id: string
+  user_id: string
+  leader_id: string
+  status: EvaluationStatus
+  reference_period_start: string
+  reference_period_end: string
+  rua_resilience: number | null
+  rua_utility: number | null
+  rua_ambition: number | null
+  rua_comments: string | null
+  overall_comments: string | null
+  // FASE 7: CALIBRAÇÃO (9-BOX)
+  potential_score: number | null
+  potential_comments: string | null
+  performance_bucket: number | null
+  nine_box_quadrant: NineBoxQuadrant | null
+  calibrated_at: string | null
+  calibrated_by: string | null
+
+  closed_at: string | null
+  closed_by: string | null
+  created_at: string
+  updated_at: string
+  // Relações
+  smart_goals?: PDIItem[]
+}
 
 export interface CustomReport {
   id: string

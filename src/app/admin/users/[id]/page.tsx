@@ -2,6 +2,7 @@ import { getUserTimeline } from '@/app/admin/actions/dho-timeline'
 import { getUserOnboardingRampUp } from '@/app/admin/actions/dho-onboarding'
 import { getUserLeadershipRites } from '@/app/admin/actions/dho-rites-fetch'
 import { getDHOScorecard } from '@/app/admin/actions/dho-scorecard'
+import { getEvaluationForUser } from '@/app/admin/actions/dho-performance'
 import { getUsers } from '@/app/admin/actions/users'
 import { getOrganizations } from '@/app/admin/actions/organizations'
 import { getPositions } from '@/app/admin/actions/positions'
@@ -9,9 +10,10 @@ import { UserTimeline } from '@/components/dho/UserTimeline'
 import { OnboardingRampUp } from '@/components/dho/OnboardingRampUp'
 import { LeadershipRites } from '@/components/dho/LeadershipRites'
 import { DHOScorecardView } from '@/components/dho/DHOScorecardView'
+import { EvaluationManagementView } from '@/components/dho/EvaluationManagementView'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, User, Building, Briefcase } from 'lucide-react'
+import { ArrowLeft, User, Building, Briefcase, TrendingUp } from 'lucide-react'
 
 interface UserProfilePageProps {
     params: {
@@ -41,17 +43,19 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     const currentPos = positions.find(p => p.id === user.position_id)?.title || 'Não definido'
 
     // Fetch DHO Data
-    const [timelineResult, rampUpResult, ritesResult, scorecardResult] = await Promise.all([
+    const [timelineResult, rampUpResult, ritesResult, scorecardResult, performanceResult] = await Promise.all([
         getUserTimeline(userId),
         getUserOnboardingRampUp(userId),
         getUserLeadershipRites(userId),
-        getDHOScorecard(userId)
+        getDHOScorecard(userId),
+        getEvaluationForUser(userId)
     ])
 
     const timelineEvents = timelineResult.success ? (timelineResult.data || []) : []
     const rampUpMetrics = rampUpResult.success ? rampUpResult.data : null
     const leadershipRites = ritesResult.success ? (ritesResult.data || []) : []
     const scorecardData = scorecardResult.success ? scorecardResult.data : null
+    const evaluation = performanceResult.success ? performanceResult.data : null
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
@@ -104,6 +108,9 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
                 {scorecardData && (
                     <DHOScorecardView scorecard={scorecardData} />
                 )}
+
+                {/* Performance Evaluation Section (RUA + SMART) */}
+                <EvaluationManagementView userId={userId} evaluation={evaluation || null} />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - RampUp & Rites */}

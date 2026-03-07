@@ -27,8 +27,10 @@ import {
   Lock,
   Flag,
   CalendarDays,
-  ListTodo
+  ListTodo,
 } from 'lucide-react'
+import { getLeadershipAlerts } from '@/app/admin/actions/dho-alerts'
+import { DHOAlertsBanner } from '@/components/dho/DHOAlertsBanner'
 
 const adminModules = [
   {
@@ -186,7 +188,10 @@ const variantStyles = {
   rose: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
 }
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const alertsRes = await getLeadershipAlerts()
+  const alerts = alertsRes.success ? (alertsRes.data || []) : []
+
   return (
     <div className="min-h-screen bg-[#FDFDFD]">
       <header className="bg-white border-b border-slate-100 flex items-center justify-center sticky top-0 z-50">
@@ -215,6 +220,9 @@ export default function AdminPage() {
             Configure a estrutura organizacional, gerencie talentos e analise indicadores estratégicos em tempo real.
           </p>
         </div>
+
+        {/* DHO Risk Alerts */}
+        <DHOAlertsBanner alerts={alerts} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
           {adminModules.map((module) => {
