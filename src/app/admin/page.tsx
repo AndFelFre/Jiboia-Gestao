@@ -160,8 +160,15 @@ const adminModules = [
     href: '/admin/analytics/culture',
     icon: Activity,
     color: 'pink',
+  },
+  {
+    title: 'Analytics Onboarding',
+    description: 'Maturidade e Rampagem (D90)',
+    href: '/admin/analytics/onboarding',
+    icon: Rocket,
+    color: 'indigo',
   }
-]
+];
 
 const colorStyles = {
   blue: 'bg-blue-50 text-blue-600 border-blue-100 shadow-blue-100/50 hover:bg-blue-600 hover:text-white',
