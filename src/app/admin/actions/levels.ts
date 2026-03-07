@@ -18,10 +18,19 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const pgError = error as { code: string; message: string; details: string };
+    if (pgError.code === '23505') return 'Já existe um registro com estes dados (duplicidade).';
+    if (pgError.code === '42501') return 'Você não tem permissão para realizar esta operação no banco de dados.';
+    if (pgError.code === '23503') return 'Não é possível excluir: existem outros registros vinculados a este.';
+  }
+
   const message = getErrorMessage(error)
   if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
   if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  return 'Erro ao processar solicitação.'
+  if (message.includes('validation')) return 'Dados inválidos. Verifique os campos preenchidos.'
+
+  return 'Erro ao processar solicitação. Tente novamente mais tarde.'
 }
 
 export async function getLevels(orgId?: string): Promise<ActionResult<Level[]>> {
@@ -78,8 +87,13 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
       .single()
 
     if (error) {
-      console.error('[Action: createLevel] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao criar nível. Verifique se os dados estão corretos.' }
+      console.error('[Action: createLevel] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/levels')

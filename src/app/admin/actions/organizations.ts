@@ -27,12 +27,17 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const pgError = error as { code: string; message: string; details: string };
+    if (pgError.code === '23505') return 'Este nome ou slug já está em uso (duplicidade).';
+    if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
+    if (pgError.code === '23503') return 'Este registro possui dados vinculados e não pode ser removido.';
+  }
+
   const message = getErrorMessage(error)
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  if (message === 'ACCOUNT_INACTIVE') return 'Sua conta está inativa.'
-  if (message === 'USER_NOT_FOUND') return 'Usuário não encontrado.'
-  return 'Erro ao processar solicitação.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
+  if (message === 'FORBIDDEN') return 'Acesso negado.'
+  return 'Erro ao salvar organização.'
 }
 
 export async function getOrganizations(): Promise<ActionResult> {
