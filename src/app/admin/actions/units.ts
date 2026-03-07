@@ -72,8 +72,8 @@ export async function getUnits(orgId?: string): Promise<ActionResult> {
 export async function createUnit(formData: UnitInput & { org_id: string }): Promise<ActionResult> {
   try {
     const auth = await requirePermission('unit.manage')
-
-    const validated = unitSchema.parse(formData)
+    const { org_id, ...unitInput } = formData
+    const validated = unitSchema.parse(unitInput)
     const supabase = createAdminSupabaseClient()
 
     const { data, error } = await supabase

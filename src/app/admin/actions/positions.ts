@@ -91,7 +91,8 @@ export async function createPosition(formData: PositionInput & { org_id: string 
       throw new Error('FORBIDDEN')
     }
 
-    const validated = positionSchema.parse(formData)
+    const { org_id, ...positionInput } = formData
+    const validated = positionSchema.parse(positionInput)
     const supabase = createAdminSupabaseClient()
 
     const { data, error } = await supabase
