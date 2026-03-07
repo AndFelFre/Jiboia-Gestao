@@ -13,6 +13,8 @@ interface Organization {
   name: string
 }
 
+import { DeletePositionButton } from '@/components/admin/DeletePositionButton'
+
 export default async function PositionsPage() {
   let positions: any[] = []
   let organizations: Organization[] = []
@@ -148,22 +150,10 @@ export default async function PositionsPage() {
                         >
                           Editar
                         </Link>
-                        <form action={async () => {
-                          'use server'
-                          await deletePosition(position.id)
-                        }} className="inline">
-                          <button
-                            type="submit"
-                            className="text-destructive hover:text-destructive/80"
-                            onClick={(e) => {
-                              if (!confirm('Tem certeza que deseja excluir este cargo?')) {
-                                e.preventDefault()
-                              }
-                            }}
-                          >
-                            Excluir
-                          </button>
-                        </form>
+                        <DeletePositionButton
+                          positionId={position.id}
+                          positionTitle={position.title}
+                        />
                       </td>
                     </tr>
                   )
