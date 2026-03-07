@@ -317,6 +317,18 @@ export interface PerformanceEvaluation {
   smart_goals?: PDIItem[]
 }
 
+export interface PerformanceOrgAnalytics {
+  org_id: string
+  unit_id: string
+  period: ISODateString
+  sample_size: number
+  avg_resilience: number | null
+  avg_utility: number | null
+  avg_ambition: number | null
+  smart_conversion_rate: number
+  avg_cohort_rampup_progress: number | null
+}
+
 export interface CustomReport {
   id: string
   org_id: string

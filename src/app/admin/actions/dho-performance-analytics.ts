@@ -1,0 +1,82 @@
+'use server'
+
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requirePermission } from '@/lib/supabase/auth'
+import { getErrorMessage } from '@/lib/utils'
+import type { ActionResult, PerformanceOrgAnalytics } from '@/types'
+
+/**
+ * Busca analytics de performance organizacional agregados.
+ * SEGURANÇA: Materialized Views não suportam RLS no Postgres, 
+ * portanto a filtragem por org_id é obrigatória nesta Action.
+ */
+export async function getPerformanceOrganizationAnalytics(
+    unitId?: string
+): Promise<ActionResult<PerformanceOrgAnalytics[]>> {
+    try {
+        await requirePermission('performance.evaluate')
+        const supabase = createServerSupabaseClient()
+
+        // 1. Obter a organização do usuário logado (Fonte de Verdade)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Usuário não autenticado')
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) throw new Error('Organização não encontrada para o usuário')
+
+        // 2. Consulta à Materialized View
+        let query = supabase
+            .from('mv_performance_org')
+            .select('*')
+            .eq('org_id', profile.org_id) // FILTRAGEM OBRIGATÓRIA (Substitui RLS)
+
+        if (unitId) {
+            query = query.eq('unit_id', unitId)
+        }
+
+        const { data, error } = await query.order('period', { ascending: false })
+
+        if (error) throw error
+
+        return {
+            success: true,
+            data: data as PerformanceOrgAnalytics[]
+        }
+    } catch (error) {
+        console.error('Error fetching performance analytics:', error)
+        return {
+            success: false,
+            error: getErrorMessage(error)
+        }
+    }
+}
+
+/**
+ * Dispara o Refresh da Materialized View.
+ * Apenas para ADMINS.
+ */
+export async function refreshPerformanceAnalytics(): Promise<ActionResult> {
+    try {
+        await requirePermission('org.manage') // Restrito a Admin
+        const supabase = createServerSupabaseClient()
+
+        // RPC para executar o comando SQL de refresh
+        // Nota: O REFRESH CONCURRENTLY exige o índice único criado na migration 070.
+        const { error } = await supabase.rpc('refresh_performance_view')
+
+        if (error) throw error
+
+        return { success: true }
+    } catch (error) {
+        console.error('Error refreshing performance view:', error)
+        return {
+            success: false,
+            error: getErrorMessage(error)
+        }
+    }
+}

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import TrackForm from '../TrackForm'
 import { getOrganizations } from '../../actions/organizations'

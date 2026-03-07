@@ -59,6 +59,7 @@ A lógica do DHO é baseada em sete pilares de dados:
 4.  **Avaliação RUA + SMART**: Ciclos de desempenho comportamental e tático.
 5.  **Matriz 9-Box**: Painel estratégico de calibração de talentos e sucessão.
 6.  **Scorecard Dinâmico**: Nota única de prontidão operacional atualizada em tempo real.
+7.  **Analytics de Rampagem**: Dashboard organizacional para monitoramento de maturidade em lote (D0-D120).
 
 ---
 
@@ -71,7 +72,9 @@ A lógica do DHO é baseada em sete pilares de dados:
 5.  [x] **Fase 5**: Scorecard DHO e Alertas Preventivos
 6.  [x] **Fase 6**: Avaliação de Desempenho (RUA + SMART)
 7.  [x] **Fase 7**: Calibração de Talentos (9-Box & Sucessão)
-8.  [ ] **Fase 8**: Dashboards de Analytics de Rampagem (Próximo Passo)
+8.  [x] **Fase 8**: Dashboards de Analytics de Rampagem
+9.  [x] **Fase 9**: Dashboards de Performance Organizacional
+10. [ ] **Fase 10**: IA Preditiva de Risco e Retenção (Próximo Passo)
 
 ---
 

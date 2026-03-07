@@ -29,6 +29,7 @@ import {
   Lock,
   Flag,
   CalendarDays,
+  TrendingUp,
   ListTodo,
 } from 'lucide-react'
 import { getLeadershipAlerts } from '@/app/admin/actions/dho-alerts'
@@ -167,6 +168,13 @@ const adminModules = [
     href: '/admin/analytics/onboarding',
     icon: Rocket,
     color: 'indigo',
+  },
+  {
+    title: 'Performance Analytics',
+    description: 'Heatmap de RUA e SMART',
+    href: '/admin/analytics/performance',
+    icon: TrendingUp,
+    color: 'emerald',
   }
 ];
 

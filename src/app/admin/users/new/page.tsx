@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import UserForm from '../UserForm'
 import { getOrganizations } from '../../actions/organizations'
