@@ -1,6 +1,7 @@
 ﻿'use server'
 import { requirePermission } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { organizationSchema, type OrganizationInput } from '@/validations/schemas'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/supabase/audit'
@@ -66,7 +67,7 @@ export async function createOrganization(formData: OrganizationInput): Promise<A
   try {
     await requirePermission('org.manage')
     const validated = organizationSchema.parse(formData)
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     const domainToSave = validated.custom_domain?.trim() || null
 
@@ -76,14 +77,16 @@ export async function createOrganization(formData: OrganizationInput): Promise<A
         name: validated.name.trim(),
         slug: validated.slug.toLowerCase().trim(),
         custom_domain: domainToSave,
+        mfa_enforced: validated.mfa_enforced,
+        security_settings: validated.security_settings,
         settings: validated.settings || {},
       })
-      .select('id, name, slug, custom_domain, settings, created_at, updated_at')
+      .select('id, name, slug, custom_domain, settings, mfa_enforced, security_settings, created_at, updated_at')
       .single()
 
     if (error) {
-      console.error('Erro ao criar organização:', error.message)
-      return { success: false, error: 'Erro ao criar organização' }
+      console.error('[Action: createOrganization] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao criar organização. Verifique se o slug já existe.' }
     }
 
     await logAudit({
@@ -105,7 +108,7 @@ export async function updateOrganization(id: string, formData: OrganizationInput
   try {
     await requirePermission('org.manage')
     const validated = organizationSchema.parse(formData)
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     // Busca valor antigo para o log
     const { data: oldData } = await supabase.from('organizations').select('*').eq('id', id).single()
@@ -116,6 +119,8 @@ export async function updateOrganization(id: string, formData: OrganizationInput
       name: validated.name.trim(),
       slug: validated.slug.toLowerCase().trim(),
       custom_domain: domainToSave,
+      mfa_enforced: validated.mfa_enforced,
+      security_settings: validated.security_settings,
       updated_at: new Date().toISOString(),
     }
 
@@ -127,12 +132,12 @@ export async function updateOrganization(id: string, formData: OrganizationInput
       .from('organizations')
       .update(updateData)
       .eq('id', id)
-      .select('id, name, slug, custom_domain, settings, created_at, updated_at')
+      .select('id, name, slug, custom_domain, settings, mfa_enforced, security_settings, created_at, updated_at')
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar organização:', error.message)
-      return { success: false, error: 'Erro ao atualizar organização' }
+      console.error('[Action: updateOrganization] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao atualizar organização.' }
     }
 
     await logAudit({
@@ -154,7 +159,7 @@ export async function updateOrganization(id: string, formData: OrganizationInput
 export async function deleteOrganization(id: string): Promise<ActionResult> {
   try {
     await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     const { data: oldData } = await supabase.from('organizations').select('*').eq('id', id).single()
 
