@@ -2,6 +2,7 @@
 
 import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { unitSchema, type UnitInput } from '@/validations/schemas'
 import { revalidatePath } from 'next/cache'
 // Unit type used via inference
@@ -65,13 +66,7 @@ export async function createUnit(formData: UnitInput & { org_id: string }): Prom
     const auth = await requirePermission('unit.manage')
 
     const validated = unitSchema.parse(formData)
-
-    // Valida org_id
-    if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
-      throw new Error('FORBIDDEN')
-    }
-
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     const { data, error } = await supabase
       .from('units')
@@ -84,8 +79,8 @@ export async function createUnit(formData: UnitInput & { org_id: string }): Prom
       .single()
 
     if (error) {
-      console.error('Erro ao criar unidade:', error.message)
-      return { success: false, error: 'Erro ao criar unidade' }
+      console.error('[Action: createUnit] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao criar unidade. Verifique os dados.' }
     }
 
     revalidatePath('/admin/units')
@@ -101,8 +96,7 @@ export async function updateUnit(id: string, formData: UnitInput & { org_id: str
     const auth = await requirePermission('unit.manage')
 
     const validated = unitSchema.parse(formData)
-
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     // Verifica se a unidade pertence Ã  org do usuário
     if (auth.role !== 'admin') {
@@ -129,8 +123,8 @@ export async function updateUnit(id: string, formData: UnitInput & { org_id: str
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar unidade:', error.message)
-      return { success: false, error: 'Erro ao atualizar unidade' }
+      console.error('[Action: updateUnit] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao atualizar unidade.' }
     }
 
     revalidatePath('/admin/units')
@@ -144,8 +138,7 @@ export async function updateUnit(id: string, formData: UnitInput & { org_id: str
 export async function deleteUnit(id: string): Promise<ActionResult> {
   try {
     const auth = await requirePermission('unit.manage')
-
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     // Verifica se a unidade pertence Ã  org do usuário
     if (auth.role !== 'admin') {
@@ -166,8 +159,8 @@ export async function deleteUnit(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('Erro ao deletar unidade:', error.message)
-      return { success: false, error: 'Erro ao remover unidade' }
+      console.error('[Action: deleteUnit] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao remover unidade.' }
     }
 
     revalidatePath('/admin/units')

@@ -1,6 +1,7 @@
 ﻿'use server'
 import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { User } from '@/types'
 import { logAudit } from '@/lib/supabase/audit'
@@ -69,7 +70,7 @@ export async function inviteUser(formData: {
       throw new Error('FORBIDDEN')
     }
 
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     // Cria usuário no auth vindo de admin console
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -80,7 +81,7 @@ export async function inviteUser(formData: {
     })
 
     if (authError) {
-      console.error('Erro ao criar usuário no auth:', authError)
+      console.error('[Action: inviteUser] Erro no Auth do Supabase:', authError.message)
       return { success: false, error: authError.message }
     }
 
@@ -99,8 +100,8 @@ export async function inviteUser(formData: {
       .insert(userData)
 
     if (dbError) {
-      console.error('Erro ao criar usuário na tabela:', dbError)
-      return { success: false, error: 'Erro ao salvar perfil' }
+      console.error('[Action: inviteUser] Erro no banco de dados:', dbError.message)
+      return { success: false, error: 'Erro ao salvar perfil do usuário.' }
     }
 
     await logAudit({
@@ -124,7 +125,7 @@ export async function inviteUser(formData: {
 export async function updateUserStatus(id: string, status: string): Promise<ActionResult> {
   try {
     const auth = await requirePermission('users.manage')
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     const { data: oldData } = await supabase.from('users').select('*').eq('id', id).single()
 
@@ -138,8 +139,8 @@ export async function updateUserStatus(id: string, status: string): Promise<Acti
       .eq('id', id)
 
     if (error) {
-      console.error('Erro ao atualizar usuário:', error)
-      return { success: false, error: 'Erro ao atualizar' }
+      console.error('[Action: updateUserStatus] Erro no banco:', error.message)
+      return { success: false, error: 'Erro ao atualizar status do usuário.' }
     }
 
     await logAudit({

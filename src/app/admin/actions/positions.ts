@@ -1,6 +1,7 @@
 ﻿'use server'
 import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { positionSchema, type PositionInput } from '@/validations/schemas'
 import { revalidatePath } from 'next/cache'
 import type { Position } from '@/types'
@@ -63,7 +64,7 @@ export async function createPosition(formData: PositionInput & { org_id: string 
     }
 
     const validated = positionSchema.parse(formData)
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     const { data, error } = await supabase
       .from('positions')
@@ -77,8 +78,8 @@ export async function createPosition(formData: PositionInput & { org_id: string 
       .single()
 
     if (error) {
-      console.error('Erro ao criar cargo:', error.message)
-      return { success: false, error: 'Erro ao criar cargo' }
+      console.error('[Action: createPosition] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao criar cargo. Verifique os dados.' }
     }
 
     await logAudit({
@@ -98,8 +99,8 @@ export async function createPosition(formData: PositionInput & { org_id: string 
 
 export async function updatePosition(id: string, formData: PositionInput & { org_id: string }): Promise<ActionResult<Position>> {
   try {
-    const auth = await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
+    const validated = positionSchema.parse(formData)
+    const supabase = createAdminSupabaseClient()
 
     // Valor antigo
     const { data: oldData } = await supabase.from('positions').select('*').eq('id', id).single()
@@ -107,8 +108,6 @@ export async function updatePosition(id: string, formData: PositionInput & { org
     if (auth.role !== 'admin') {
       if (oldData?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
     }
-
-    const validated = positionSchema.parse(formData)
 
     const { data, error } = await supabase
       .from('positions')
@@ -123,8 +122,8 @@ export async function updatePosition(id: string, formData: PositionInput & { org
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar cargo:', error.message)
-      return { success: false, error: 'Erro ao atualizar cargo' }
+      console.error('[Action: updatePosition] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao atualizar cargo.' }
     }
 
     await logAudit({
@@ -146,7 +145,7 @@ export async function updatePosition(id: string, formData: PositionInput & { org
 export async function deletePosition(id: string): Promise<ActionResult> {
   try {
     const auth = await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     // Valor antigo
     const { data: oldData } = await supabase.from('positions').select('*').eq('id', id).single()
@@ -161,8 +160,8 @@ export async function deletePosition(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('Erro ao deletar cargo:', error.message)
-      return { success: false, error: 'Erro ao remover cargo' }
+      console.error('[Action: deletePosition] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao remover cargo.' }
     }
 
     await logAudit({
