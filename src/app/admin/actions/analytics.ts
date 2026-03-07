@@ -111,7 +111,7 @@ export async function getTurnoverStats(): Promise<{ success: boolean, data?: Tur
             }
         }
     } catch (error) {
-        return sanitizeError(error)
+        return { success: false, error: sanitizeError(error) }
     }
 }
 
@@ -214,7 +214,7 @@ export async function getRecruitmentStats(): Promise<{ success: boolean, data?: 
         }
 
     } catch (error) {
-        return sanitizeError(error)
+        return { success: false, error: sanitizeError(error) }
     }
 }
 
@@ -306,7 +306,7 @@ export async function getTurnoverRiskAnalysis(): Promise<{ success: boolean, dat
             data: analyses.sort((a, b) => b.riskScore - a.riskScore)
         }
     } catch (error) {
-        return sanitizeError(error)
+        return { success: false, error: sanitizeError(error) }
     }
 }
 
@@ -393,7 +393,7 @@ export async function getSkillHeatmap(unitId?: string): Promise<{ success: boole
             }
         }
     } catch (error) {
-        return sanitizeError(error)
+        return { success: false, error: sanitizeError(error) }
     }
 }
 
@@ -460,7 +460,7 @@ export async function getPulseClimateStats(): Promise<{ success: boolean, data?:
             }
         }
     } catch (error) {
-        return sanitizeError(error)
+        return { success: false, error: sanitizeError(error) }
     }
 }
 
@@ -507,6 +507,6 @@ export async function suggestPDIImprovement(userId: string): Promise<{ success: 
             data: suggestions.sort((a, b) => b.gap - a.gap)
         }
     } catch (error) {
-        return sanitizeError(error)
+        return { success: false, error: sanitizeError(error) }
     }
 }
