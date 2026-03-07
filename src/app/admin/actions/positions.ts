@@ -30,6 +30,7 @@ export async function getPositions(orgId?: string): Promise<ActionResult<Positio
     const auth = await requireAuth()
     const supabase = createServerSupabaseClient()
 
+    // Query simplificada para evitar falhas críticas em joins se RLS for restritivo
     let query = supabase
       .from('positions')
       .select('*, organizations(name), levels(name, sequence)')
@@ -44,13 +45,32 @@ export async function getPositions(orgId?: string): Promise<ActionResult<Positio
     const { data, error } = await query
 
     if (error) {
-      console.error('Erro ao buscar cargos:', error)
-      return { success: false, error: 'Erro ao buscar dados' }
+      console.error('[Action: getPositions] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+
+      // Tentativa de fallback sem joins se o erro for de permissão/RLS no join
+      if (error.code === '42501' || error.message?.includes('permission')) {
+        console.log('[Action: getPositions] Tentando fallback sem joins...')
+        const fallback = await supabase
+          .from('positions')
+          .select('*')
+          .order('title')
+
+        if (!fallback.error) {
+          return { success: true, data: fallback.data as Position[] }
+        }
+      }
+
+      return { success: false, error: 'Erro ao buscar dados de cargos' }
     }
 
     return { success: true, data: data as Position[] }
   } catch (error: unknown) {
-    console.error('Erro em getPositions:', getErrorMessage(error))
+    console.error('Erro crítico em getPositions:', getErrorMessage(error))
     return { success: false, error: sanitizeError(error) }
   }
 }

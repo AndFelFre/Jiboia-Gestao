@@ -20,22 +20,30 @@ export default async function PositionsPage() {
   let error: string | null = null
 
   try {
+    console.log('[PositionsPage] Iniciando busca de dados...')
     const [positionsResult, orgsResult, levelsResult] = await Promise.all([
       getPositions(),
       getOrganizations(),
       getLevels()
     ])
 
+    console.log('[PositionsPage] Resultados:', {
+      positions: positionsResult.success ? `${positionsResult.data?.length} encontrados` : `ERRO: ${positionsResult.error}`,
+      orgs: orgsResult.success ? `${orgsResult.data?.length} encontrados` : `ERRO: ${orgsResult.error}`,
+      levels: levelsResult.success ? `${levelsResult.data?.length} encontrados` : `ERRO: ${levelsResult.error}`
+    })
+
     if (positionsResult.success) positions = positionsResult.data || []
     if (orgsResult.success) organizations = orgsResult.data as Organization[] || []
     if (levelsResult.success) levels = levelsResult.data || []
 
-    if (!positionsResult.success || !orgsResult.success || !levelsResult.success) {
-      error = positionsResult.error || orgsResult.error || levelsResult.error || 'Erro ao carregar dados'
+    // Só exibimos erro se a busca de posições falhar criticamente
+    if (!positionsResult.success) {
+      error = positionsResult.error || 'Erro ao carregar cargos'
     }
   } catch (e) {
-    console.error('Erro crítico em PositionsPage:', e)
-    error = 'Ocorreu um erro inesperado ao carregar a página.'
+    console.error('Erro crítico não tratado em PositionsPage:', e)
+    error = 'Exceção de servidor detectada. Verifique os logs.'
   }
 
   if (error && positions.length === 0) {
@@ -103,8 +111,9 @@ export default async function PositionsPage() {
               </thead>
               <tbody className="bg-card divide-y divide-border">
                 {positions.map((position) => {
-                  const org = organizations.find(o => o.id === position.org_id)
-                  const level = levels.find(l => l.id === position.level_id)
+                  if (!position || !position.id) return null
+                  const org = Array.isArray(organizations) ? organizations.find(o => o.id === position.org_id) : null
+                  const level = Array.isArray(levels) ? levels.find(l => l.id === position.level_id) : null
 
                   return (
                     <tr key={position.id} className="hover:bg-muted/50">
