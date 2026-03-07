@@ -8,6 +8,12 @@ export type Json =
   | { [key: string]: Json }
   | Json[]
 
+export interface ActionResult<T = unknown> {
+  success: boolean
+  data?: T
+  error?: string
+}
+
 // ============================================
 // RBAC - Role Based Access Control
 // ============================================
@@ -182,7 +188,10 @@ export interface AuditLog {
 // ============================================
 
 export type PDIItemStatus = 'not_started' | 'in_progress' | 'completed' | 'cancelled'
-export type PDIItemCategory = 'course' | 'mentoring' | 'reading' | 'project' | 'other'
+export type PDIItemCategory = 'course' | 'mentoring' | 'reading' | 'project' | 'leadership_rite' | 'other'
+
+export type PDIPlanType = 'development' | 'leadership_rites'
+export type DHORiteType = 'one_on_one' | 'feedback' | 'checkpoint'
 
 export interface PDIPlan {
   id: string
@@ -191,6 +200,9 @@ export interface PDIPlan {
   title: string
   description: string | null
   status: 'active' | 'archived'
+  plan_type: PDIPlanType
+  reference_year: number | null
+  leader_id: string | null
   created_at: ISODateString
   updated_at: ISODateString
 }
@@ -204,6 +216,8 @@ export interface PDIItem {
   category: PDIItemCategory
   status: PDIItemStatus
   deadline: string | null
+  rite_type: DHORiteType | null
+  completed_by: string | null
   completed_at: ISODateString | null
   created_at: ISODateString
   updated_at: ISODateString

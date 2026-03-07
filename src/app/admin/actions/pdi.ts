@@ -4,13 +4,7 @@ import { requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/supabase/audit'
-import type { SkillGap, PDIPlan, PDIItem } from '@/types'
-
-interface ActionResult<T = unknown> {
-    success: boolean
-    data?: T
-    error?: string
-}
+import type { SkillGap, PDIPlan, PDIItem, ActionResult } from '@/types'
 
 /**
  * Obtém os dados de PDI do usuário logado, incluindo a análise de GAP
@@ -31,6 +25,7 @@ export async function getMyPDIData(): Promise<ActionResult<{
             .select('*')
             .eq('user_id', auth.userId)
             .eq('status', 'active')
+            .eq('plan_type', 'development') // Isolamento DHO
             .maybeSingle()
 
         let items: PDIItem[] = []
@@ -145,6 +140,22 @@ export async function addPDIItem(formData: {
     try {
         const auth = await requireAuth()
         const supabase = createServerSupabaseClient()
+
+        // 1. Validar se o plano é do tipo 'development'
+        const { data: planCheck } = await supabase
+            .from('pdi_plans')
+            .select('plan_type')
+            .eq('id', formData.planId)
+            .single()
+
+        if (planCheck?.plan_type !== 'development') {
+            throw new Error('FORBIDDEN: Operação inválida sobre plano de ritos via PDI comum.')
+        }
+
+        // 2. Impedir categoria de rito em action genérica
+        if (formData.category === 'leadership_rite') {
+            throw new Error('FORBIDDEN: Use addLeadershipRite para registrar ritos.')
+        }
 
         const { data, error } = await supabase
             .from('pdi_items')

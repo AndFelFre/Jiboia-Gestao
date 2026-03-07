@@ -186,3 +186,46 @@ export const rolePermissionsSchema = z
   .optional()
 
 export type RolePermissionsInput = z.infer<typeof rolePermissionsSchema>
+/**
+ * PDI - Plano de Desenvolvimento Individual
+ */
+export const pdiPlanSchema = z
+  .object({
+    title: trimmed(2, 'Título deve ter no mínimo 2 caracteres').max(120, 'Título muito longo'),
+    description: z.string().trim().max(2000, 'Descrição muito longa').optional().or(z.literal('')),
+    plan_type: z.enum(['development', 'leadership_rites']).default('development'),
+    reference_year: z.number().int().min(2020).max(2100).optional().or(z.literal(null)),
+    leader_id: z.string().uuid().optional().or(z.literal(null)),
+    status: z.enum(['active', 'archived']).default('active'),
+  })
+  .strict()
+
+export type PDIPlanInput = z.infer<typeof pdiPlanSchema>
+
+export const pdiItemSchema = z
+  .object({
+    plan_id: uuid,
+    skill_id: z.string().uuid().optional().or(z.literal(null)),
+    title: trimmed(2, 'Título deve ter no mínimo 2 caracteres').max(120, 'Título muito longo'),
+    description: z.string().trim().max(2000, 'Descrição muito longa').optional().or(z.literal('')),
+    category: z.enum(['course', 'mentoring', 'reading', 'project', 'leadership_rite', 'other']),
+    status: z.enum(['not_started', 'in_progress', 'completed', 'cancelled']).default('not_started'),
+    deadline: z.string().optional().or(z.literal(null)),
+    rite_type: z.enum(['one_on_one', 'feedback', 'checkpoint']).optional().or(z.literal(null)),
+    completed_by: z.string().uuid().optional().or(z.literal(null)),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (data.category === 'leadership_rite' && !data.rite_type) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Tipo de rito é obrigatório para ritos de liderança',
+      path: ['rite_type'],
+    }
+  )
+
+export type PDIItemInput = z.infer<typeof pdiItemSchema>
