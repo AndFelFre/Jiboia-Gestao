@@ -65,7 +65,7 @@ export async function getPositions(orgId?: string): Promise<ActionResult<Positio
         }
       }
 
-      return { success: false, error: 'Erro ao buscar dados de cargos' }
+      return { success: false, error: sanitizeError(error) }
     }
 
     return { success: true, data: data as Position[] }

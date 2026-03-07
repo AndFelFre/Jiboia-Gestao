@@ -17,18 +17,18 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const pgError = error as { code: string };
-    if (pgError.code === '23505') return 'Esta trilha já existe nesta organização.';
-    if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
-    if (pgError.code === '23503') return 'Não é possível remover esta trilha por possuir vínculos ativos.';
+  const message = getErrorMessage(error)
+  const code = (error as any)?.code
+
+  if (code) {
+    return `Erro de Banco (${code}): ${message}`
   }
 
-  const message = getErrorMessage(error)
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
   if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
   if (message === 'FORBIDDEN') return 'Acesso negado.'
 
-  return 'Erro ao processar trilha. Tente novamente.'
+  return `Erro: ${message}`
 }
 
 interface TrackInput {
