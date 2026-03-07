@@ -1,6 +1,7 @@
 ﻿'use server'
 import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { levelSchema, type LevelInput } from '@/validations/schemas'
 import { revalidatePath } from 'next/cache'
 import type { Level } from '@/types'
@@ -62,7 +63,7 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
     }
 
     const validated = levelSchema.parse(formData)
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     const { data, error } = await supabase
       .from('levels')
@@ -77,8 +78,8 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
       .single()
 
     if (error) {
-      console.error('Erro ao criar nível:', error.message)
-      return { success: false, error: 'Erro ao criar nível' }
+      console.error('[Action: createLevel] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao criar nível. Verifique se os dados estão corretos.' }
     }
 
     revalidatePath('/admin/levels')
@@ -92,14 +93,13 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
 export async function updateLevel(id: string, formData: LevelInput & { org_id: string }): Promise<ActionResult<Level>> {
   try {
     const auth = await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
+    const validated = levelSchema.parse(formData)
+    const supabase = createAdminSupabaseClient()
 
     if (auth.role !== 'admin') {
       const { data: level } = await supabase.from('levels').select('org_id').eq('id', id).single()
       if (level?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
     }
-
-    const validated = levelSchema.parse(formData)
 
     const { data, error } = await supabase
       .from('levels')
@@ -115,8 +115,8 @@ export async function updateLevel(id: string, formData: LevelInput & { org_id: s
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar nível:', error.message)
-      return { success: false, error: 'Erro ao atualizar nível' }
+      console.error('[Action: updateLevel] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao atualizar nível.' }
     }
 
     revalidatePath('/admin/levels')
@@ -130,7 +130,7 @@ export async function updateLevel(id: string, formData: LevelInput & { org_id: s
 export async function deleteLevel(id: string): Promise<ActionResult> {
   try {
     const auth = await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
 
     if (auth.role !== 'admin') {
       const { data: level } = await supabase.from('levels').select('org_id').eq('id', id).single()
@@ -143,8 +143,8 @@ export async function deleteLevel(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('Erro ao deletar nível:', error.message)
-      return { success: false, error: 'Erro ao remover nível' }
+      console.error('[Action: deleteLevel] Erro do Supabase:', error.message, error.details, error.hint)
+      return { success: false, error: 'Erro ao remover nível.' }
     }
 
     revalidatePath('/admin/levels')
