@@ -3,17 +3,16 @@ import { getPositions, deletePosition } from '../actions/positions'
 import { getOrganizations } from '../actions/organizations'
 import { getLevels } from '../actions/levels'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Briefcase, Layers, Building, Award, Edit } from 'lucide-react'
 import { EmptyState } from '@/components/ui/feedback'
-
-export const dynamic = 'force-dynamic'
+import { AdminDeleteButton } from '@/components/admin/AdminDeleteButton'
 
 interface Organization {
   id: string
   name: string
 }
 
-import { DeletePositionButton } from '@/components/admin/DeletePositionButton'
+export const dynamic = 'force-dynamic'
 
 export default async function PositionsPage() {
   let positions: any[] = []
@@ -85,75 +84,90 @@ export default async function PositionsPage() {
         {positions.length === 0 ? (
           <EmptyState
             title="Nenhum cargo encontrado"
-            description="Defina as funções e responsabilidades da sua organização."
+            description="Defina as funções, responsabilidades e competências necessárias para cada posição."
             action={
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="rounded-xl border-primary/20 hover:bg-primary/5">
                 <Link href="/admin/positions/new">Criar Primeiro Cargo</Link>
               </Button>
             }
           />
         ) : (
-          <div className="bg-card rounded-lg shadow-sm border overflow-hidden">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted/50">
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <table className="min-w-full divide-y divide-slate-100">
+              <thead className="bg-[#F8FAFC]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Cargo
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Nome do Cargo / Descrição
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Nível
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Nível de Carreira
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                     Organização
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Ações
+                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Gerenciamento
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-card divide-y divide-border">
+              <tbody className="divide-y divide-slate-50 bg-white">
                 {positions.map((position) => {
                   if (!position || !position.id) return null
                   const org = Array.isArray(organizations) ? organizations.find(o => o.id === position.org_id) : null
                   const level = Array.isArray(levels) ? levels.find(l => l.id === position.level_id) : null
 
                   return (
-                    <tr key={position.id} className="hover:bg-muted/50">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-foreground">{position.title}</div>
-                        {position.description && (
-                          <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{position.description}</p>
-                        )}
+                    <tr key={position.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 shadow-sm border border-purple-100/50 group-hover:scale-105 transition-transform">
+                            <Briefcase className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-900">{position.title}</div>
+                            {position.description && (
+                              <p className="text-[10px] text-slate-400 mt-1 max-w-xs truncate font-medium uppercase tracking-tighter">
+                                {position.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-8 py-5 whitespace-nowrap">
                         {level ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-600">
+                          <div className="flex items-center gap-2 text-xs font-bold text-purple-600 bg-purple-50 w-fit px-3 py-1 rounded-full border border-purple-100">
+                            <Award className="w-3.5 h-3.5" />
                             {level.name}
-                          </span>
+                          </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
+                          <span className="text-slate-300 text-[10px] font-black uppercase tracking-widest px-3">S/ Nível</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{org?.name || '-'}</div>
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                          <Building className="w-3.5 h-3.5 opacity-50" />
+                          {org?.name || '-'}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/admin/performance/positions/${position.id}`}
-                          className="text-primary hover:text-primary/80 mr-4 font-bold text-xs uppercase"
-                        >
-                          Competências
-                        </Link>
-                        <Link
-                          href={`/admin/positions/${position.id}/edit`}
-                          className="text-muted-foreground hover:text-foreground mr-4 text-xs"
-                        >
-                          Editar
-                        </Link>
-                        <DeletePositionButton
-                          positionId={position.id}
-                          positionTitle={position.title}
-                        />
+                      <td className="px-8 py-5 whitespace-nowrap text-right text-sm">
+                        <div className="flex justify-end items-center gap-2">
+                          <Button asChild variant="ghost" size="sm" className="h-9 px-4 rounded-xl font-bold text-primary hover:bg-primary/5">
+                            <Link href={`/admin/performance/positions/${position.id}`}>
+                              Skills
+                            </Link>
+                          </Button>
+                          <Button asChild variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 text-slate-400" title="Editar Cargo">
+                            <Link href={`/admin/positions/${position.id}/edit`}>
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <AdminDeleteButton
+                            itemId={position.id}
+                            itemName={position.title}
+                            onDelete={deletePosition}
+                            className="h-9 w-9 rounded-xl"
+                          />
+                        </div>
                       </td>
                     </tr>
                   )

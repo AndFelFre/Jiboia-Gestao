@@ -23,12 +23,14 @@ function sanitizeError(error: unknown): string {
   const code = (error as any)?.code
 
   if (code) {
+    if (code === '23505') return 'Já existe um cargo com este título nesta organização.'
+    if (code === '23503') return 'Não é possível remover: este cargo possui usuários vinculados.'
     return `Erro de Banco (${code}): ${message}`
   }
 
-  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos inesperados detectados.'
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
-  if (message === 'FORBIDDEN') return 'Acesso negado.'
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
+  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
 
   return `Erro: ${message}`
 }
@@ -201,8 +203,8 @@ export async function deletePosition(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('[Action: deletePosition] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao remover cargo.' }
+      console.error('[Action: deletePosition] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({

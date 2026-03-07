@@ -41,8 +41,8 @@ export async function getAuditLogs(filters: AuditFilters = {}) {
         const { data, error, count } = await query
 
         if (error) {
-            console.error('Erro ao buscar logs:', error)
-            return { success: false, error: 'Erro ao carregar logs' }
+            console.error('[Action: getAuditLogs] Erro:', error.message)
+            return { success: false, error: 'Erro ao carregar logs de auditoria' }
         }
 
         return {
@@ -56,8 +56,13 @@ export async function getAuditLogs(filters: AuditFilters = {}) {
             }
         }
     } catch (error: unknown) {
-        const err = error as Error
-        return { success: false, error: err.message }
+        console.error('Erro em getAuditLogs:', error)
+        const message = error instanceof Error ? error.message : String(error)
+
+        if (message === 'UNAUTHORIZED') return { success: false, error: 'Sessão expirada. Faça login novamente.' }
+        if (message === 'FORBIDDEN') return { success: false, error: 'Você não tem permissão para ler logs de auditoria.' }
+
+        return { success: false, error: `Erro: ${message}` }
     }
 }
 

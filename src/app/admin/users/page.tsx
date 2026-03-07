@@ -3,8 +3,9 @@ import { getUsers, updateUserStatus } from '../actions/users'
 import { getOrganizations } from '../actions/organizations'
 import { getUnits } from '../actions/units'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, User as UserIcon, Shield, MapPin, Building, ToggleLeft, ToggleRight, Mail } from 'lucide-react'
 import { EmptyState } from '@/components/ui/feedback'
+import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,81 +101,109 @@ export default async function UsersPage() {
         {users.length === 0 ? (
           <EmptyState
             title="Nenhum usuário encontrado"
-            description="Comece convidando colaboradores para a sua organização."
+            description="Comece convidando seus colaboradores e parceiros para a plataforma."
             action={
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="rounded-xl border-primary/20 hover:bg-primary/5">
                 <Link href="/admin/users/new">Convidar Primeiro Usuário</Link>
               </Button>
             }
           />
         ) : (
-          <div className="bg-card rounded-lg shadow-sm border overflow-hidden">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted/50">
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <table className="min-w-full divide-y divide-slate-100">
+              <thead className="bg-[#F8FAFC]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Usuário
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Perfil do Usuário
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Papel
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Papel (Acesso)
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Unidade
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Unidade / Org
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Ações
+                  <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                    Gerenciamento
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-card divide-y divide-border">
+              <tbody className="divide-y divide-slate-50 bg-white">
                 {users.map((user) => {
                   const org = organizations.find(o => o.id === user.org_id)
                   const unit = units.find(u => u.id === user.unit_id)
                   const role = roles.find(r => r.id === user.role_id)
 
                   return (
-                    <tr key={user.id} className="hover:bg-muted/50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                    <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black shadow-sm border border-indigo-100/50 group-hover:scale-105 transition-transform">
                             {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-foreground">{user.full_name || 'Sem nome'}</div>
-                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-900 leading-none">{user.full_name || 'Convite Pendente'}</div>
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 mt-1">
+                              <Mail className="w-2.5 h-2.5 opacity-50" />
+                              {user.email}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-600 capitalize">
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 w-fit px-3 py-1 rounded-full border border-indigo-100">
+                          <Shield className="w-3.5 h-3.5" />
                           {role?.name || '-'}
-                        </span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-foreground">{unit?.name || '-'}</div>
-                        <div className="text-xs text-muted-foreground">{org?.name || '-'}</div>
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            {unit?.name || '-'}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400 pl-4">
+                            {org?.name || '-'}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(user.status)}`}>
+                      <td className="px-8 py-5 whitespace-nowrap">
+                        <span className={`inline - flex items - center px - 3 py - 1 rounded - full text - [10px] font - black uppercase tracking - widest border border - current transition - all ${getStatusBadge(user.status)} `}>
                           {user.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-8 py-5 whitespace-nowrap text-right text-sm">
                         <form action={async () => {
                           'use server'
                           const newStatus = user.status === 'active' ? 'inactive' : 'active'
                           await updateUserStatus(user.id, newStatus)
                         }} className="inline"
                         >
-                          <button
+                          <Button
                             type="submit"
-                            className={`${user.status === 'active' ? 'text-orange-600 hover:text-orange-600/80' : 'text-green-600 hover:text-green-600/80'} mr-4`}
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-9 px-4 rounded-xl font-bold transition-all",
+                              user.status === 'active'
+                                ? "text-slate-400 hover:text-orange-600 hover:bg-orange-50"
+                                : "text-green-600 hover:bg-green-50"
+                            )}
                           >
-                            {user.status === 'active' ? 'Desativar' : 'Ativar'}
-                          </button>
+                            {user.status === 'active' ? (
+                              <>
+                                <ToggleLeft className="w-4 h-4 mr-2 opacity-50" />
+                                Desativar
+                              </>
+                            ) : (
+                              <>
+                                <ToggleRight className="w-4 h-4 mr-2" />
+                                Ativar
+                              </>
+                            )}
+                          </Button>
                         </form>
                       </td>
                     </tr>

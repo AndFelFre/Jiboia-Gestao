@@ -22,11 +22,14 @@ function sanitizeError(error: unknown): string {
   const code = (error as any)?.code
 
   if (code) {
+    if (code === '23505') return 'Já existe um nível com este nome ou sequência nesta organização.'
+    if (code === '23503') return 'Não é possível remover: este nível está vinculado a algum cargo.'
     return `Erro de Banco (${code}): ${message}`
   }
 
-  if (message.includes('UNAUTHORIZED')) return 'Sessão expirada. Faça login novamente.'
-  if (message.includes('FORBIDDEN')) return 'Você não tem permissão para realizar esta ação.'
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
+  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
 
   return `Erro: ${message}`
 }
@@ -129,8 +132,8 @@ export async function updateLevel(id: string, formData: LevelInput & { org_id: s
       .single()
 
     if (error) {
-      console.error('[Action: updateLevel] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao atualizar nível.' }
+      console.error('[Action: updateLevel] Erro do Supabase:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/levels')
@@ -157,8 +160,8 @@ export async function deleteLevel(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('[Action: deleteLevel] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao remover nível.' }
+      console.error('[Action: deleteLevel] Erro do Supabase:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/levels')

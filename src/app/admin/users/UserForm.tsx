@@ -39,6 +39,7 @@ interface UserFormProps {
 
 export default function UserForm({ organizations, units, roles, positions }: UserFormProps) {
     const [error, setError] = useState('')
+    const [success, setSuccess] = useState('')
     const [loading, setLoading] = useState(false)
     const [selectedOrg, setSelectedOrg] = useState('')
     const router = useRouter()
@@ -76,8 +77,11 @@ export default function UserForm({ organizations, units, roles, positions }: Use
         })
 
         if (result.success) {
-            router.push('/admin/users')
-            router.refresh()
+            setSuccess('Usuário convidado com sucesso!')
+            setTimeout(() => {
+                router.push('/admin/users')
+                router.refresh()
+            }, 1500)
         } else {
             setError(result.error || 'Erro ao convidar usuário')
             setLoading(false)
@@ -87,8 +91,17 @@ export default function UserForm({ organizations, units, roles, positions }: Use
     return (
         <div className="bg-card rounded-lg shadow-sm border p-6">
             {error && (
-                <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded">
-                    <p className="text-destructive">{error}</p>
+                <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded animate-in fade-in duration-300">
+                    <p className="text-destructive font-medium">{error}</p>
+                </div>
+            )}
+
+            {success && (
+                <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded animate-in zoom-in duration-300">
+                    <p className="text-emerald-600 font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        {success}
+                    </p>
                 </div>
             )}
 

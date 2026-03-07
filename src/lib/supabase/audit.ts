@@ -23,9 +23,13 @@ export async function logAudit(params: {
         })
 
         if (error) {
-            console.error('Erro ao salvar audit log:', error)
+            console.error(`[Audit] Erro ao gravar log para ${params.tableName}:`, {
+                code: error.code,
+                message: error.message,
+                details: error.details
+            })
         }
     } catch (error) {
-        console.error('Erro ao processar audit log:', error)
+        console.error('[Audit] Falha crítica ao processar auditoria:', error instanceof Error ? error.message : error)
     }
 }

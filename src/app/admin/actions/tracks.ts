@@ -21,12 +21,14 @@ function sanitizeError(error: unknown): string {
   const code = (error as any)?.code
 
   if (code) {
+    if (code === '23505') return 'Já existe uma trilha com este nome nesta organização.'
+    if (code === '23503') return 'Não é possível remover: esta trilha está vinculada a algum cargo.'
     return `Erro de Banco (${code}): ${message}`
   }
 
   if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
-  if (message === 'FORBIDDEN') return 'Acesso negado.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
+  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
 
   return `Erro: ${message}`
 }
@@ -123,9 +125,9 @@ export async function updateTrack(id: string, formData: TrackInput & { org_id: s
     const { data, error } = await supabase
       .from('tracks')
       .update({
-        name: formData.name.trim(),
-        description: formData.description || null,
-        stages: formData.stages || [],
+        name: validated.name.trim(),
+        description: validated.description || null,
+        stages: validated.stages || [],
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

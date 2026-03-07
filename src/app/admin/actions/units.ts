@@ -19,18 +19,18 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const pgError = error as { code: string; message: string };
-    if (pgError.code === '23505') return 'Já existe um registro com estes dados (duplicidade).';
-    if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
-    if (pgError.code === '23503') return 'Não é possível remover: existem outros registros vinculados.';
-    return `Erro de Banco (${pgError.code}): ${pgError.message}`;
+  const message = getErrorMessage(error)
+  const code = (error as any)?.code
+
+  if (code) {
+    if (code === '23505') return 'Já existe uma unidade com este nome nesta organização.'
+    if (code === '23503') return 'Não é possível remover: esta unidade possui usuários ou subunidades vinculadas.'
+    return `Erro de Banco (${code}): ${message}`
   }
 
-  const message = getErrorMessage(error)
-  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos inesperados detectados.'
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
-  if (message === 'FORBIDDEN') return 'Acesso negado.'
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
+  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
 
   return `Erro: ${message}`
 }
@@ -108,7 +108,8 @@ export async function updateUnit(id: string, formData: UnitInput & { org_id: str
   try {
     const auth = await requirePermission('unit.manage')
 
-    const validated = unitSchema.parse(formData)
+    const { org_id, ...unitInput } = formData
+    const validated = unitSchema.parse(unitInput)
     const supabase = createAdminSupabaseClient()
 
     // Verifica se a unidade pertence Ã  org do usuário
@@ -172,8 +173,8 @@ export async function deleteUnit(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('[Action: deleteUnit] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao remover unidade.' }
+      console.error('[Action: deleteUnit] Erro do Supabase:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/units')
