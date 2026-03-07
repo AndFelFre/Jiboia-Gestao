@@ -5,6 +5,7 @@ import { PerformanceEvaluation, NineBoxQuadrant } from '@/types'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { User } from 'lucide-react'
+import Image from 'next/image'
 
 interface NineBoxMatrixGridProps {
     data: (PerformanceEvaluation & { users: { full_name: string; avatar_url?: string; email: string } })[]
@@ -64,7 +65,13 @@ export function NineBoxMatrixGrid({ data }: NineBoxMatrixGridProps) {
                                                 <TooltipTrigger asChild>
                                                     <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 cursor-help hover:border-indigo-500 hover:text-indigo-600 transition-colors shadow-sm overflow-hidden shrink-0">
                                                         {u.users.avatar_url ? (
-                                                            <img src={u.users.avatar_url} alt={u.users.full_name} className="w-full h-full object-cover" />
+                                                            <Image
+                                                                src={u.users.avatar_url}
+                                                                alt={u.users.full_name}
+                                                                width={32}
+                                                                height={32}
+                                                                className="w-full h-full object-cover"
+                                                            />
                                                         ) : (
                                                             <User className="w-4 h-4" />
                                                         )}

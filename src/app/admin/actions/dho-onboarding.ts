@@ -3,6 +3,7 @@
 import { requirePermission } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getErrorMessage } from '@/lib/utils'
+import type { ActionResult } from '@/types'
 
 export interface RampUpMetrics {
     totalItems: number
