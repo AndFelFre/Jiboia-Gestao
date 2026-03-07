@@ -18,21 +18,9 @@ function getErrorMessage(error: unknown): string {
   return String(error)
 }
 
-function sanitizeError(error: unknown): string {
-  const message = getErrorMessage(error)
-  const code = (error as any)?.code
-
-  if (code) {
-    if (code === '23505') return 'Já existe um cargo com este título nesta organização.'
-    if (code === '23503') return 'Não é possível remover: este cargo possui usuários vinculados.'
-    return `Erro de Banco (${code}): ${message}`
-  }
-
-  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-
-  return `Erro: ${message}`
+const sanitizeError = (error: unknown) => {
+  const { sanitizeError: centralSanitizeError } = require('@/lib/utils')
+  return centralSanitizeError(error)
 }
 
 export async function getPositions(orgId?: string): Promise<ActionResult<Position[]>> {
@@ -103,6 +91,7 @@ export async function createPosition(formData: PositionInput & { org_id: string 
         org_id: formData.org_id,
         title: validated.title.trim(),
         level_id: validated.level_id || null,
+        track_id: validated.track_id || null,
         description: validated.description || null,
       })
       .select()
@@ -152,6 +141,7 @@ export async function updatePosition(id: string, formData: PositionInput & { org
       .update({
         title: validated.title.trim(),
         level_id: validated.level_id || null,
+        track_id: validated.track_id || null,
         description: validated.description || null,
         updated_at: new Date().toISOString(),
       })
@@ -177,7 +167,7 @@ export async function updatePosition(id: string, formData: PositionInput & { org
       newValues: data,
     })
 
-    revalidatePath('/admin/positions')
+    revalidatePath('/admin/positions', 'page')
     return { success: true, data: data as Position }
   } catch (error: unknown) {
     console.error('Erro em updatePosition:', getErrorMessage(error))
@@ -214,7 +204,7 @@ export async function deletePosition(id: string): Promise<ActionResult> {
       oldValues: oldData,
     })
 
-    revalidatePath('/admin/positions')
+    revalidatePath('/admin/positions', 'page')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em deletePosition:', getErrorMessage(error))

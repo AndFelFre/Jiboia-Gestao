@@ -44,13 +44,19 @@ export default function PositionForm({ organizations, levels, initialData }: Pos
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<PositionInput>({
+    } = useForm({
         resolver: zodResolver(positionSchema),
         defaultValues: initialData ? {
             title: initialData.title,
-            level_id: initialData.level_id || undefined,
-            description: initialData.description || undefined,
-        } : undefined
+            level_id: initialData.level_id || '',
+            track_id: (initialData as any).track_id || '',
+            description: initialData.description || '',
+        } : {
+            title: '',
+            level_id: '',
+            track_id: '',
+            description: '',
+        }
     })
 
     const filteredLevels = selectedOrg
@@ -71,9 +77,11 @@ export default function PositionForm({ organizations, levels, initialData }: Pos
             : await createPosition({ ...data, org_id: selectedOrg })
 
         if (result.success) {
-            router.push('/admin/positions')
+            console.log('[PositionForm] Sucesso ao salvar cargo. Revalidando e redirecionando...')
             router.refresh()
+            router.push('/admin/positions')
         } else {
+            console.error('[PositionForm] Erro ao salvar:', result.error)
             setError(result.error || 'Erro ao salvar cargo')
             setLoading(false)
         }

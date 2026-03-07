@@ -105,8 +105,8 @@ export type UserInput = z.infer<typeof userSchema>
 export const positionSchema = z
   .object({
     title: trimmed(2, 'Título deve ter no mínimo 2 caracteres').max(120, 'Título muito longo'),
-    level_id: z.string().uuid().optional(),
-    track_id: z.string().uuid().optional(),
+    level_id: z.string().uuid().optional().or(z.literal('')).transform(v => v === '' ? undefined : v),
+    track_id: z.string().uuid().optional().or(z.literal('')).transform(v => v === '' ? undefined : v),
     description: z.string().trim().max(2000, 'Descrição muito longa').optional(),
   })
   .strict()
