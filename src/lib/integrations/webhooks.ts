@@ -23,19 +23,34 @@ export async function dispatchWebhook(orgId: string, eventType: string, payload:
         if (!hooks || hooks.length === 0) return
 
         // 2. Disparar cada webhook de forma assíncrona (não bloqueante)
-        const deliveries = hooks.map(hook => {
+        const deliveries = hooks.map(async (hook) => {
+            const body = JSON.stringify({
+                event: eventType,
+                timestamp: new Date().toISOString(),
+                data: payload
+            })
+
+            let signature = ''
+            if (hook.secret) {
+                try {
+                    const crypto = await import('crypto')
+                    signature = crypto
+                        .createHmac('sha256', hook.secret)
+                        .update(body)
+                        .digest('hex')
+                } catch (cryptoErr) {
+                    console.error('Erro ao gerar assinatura HMAC:', cryptoErr)
+                }
+            }
+
             return fetch(hook.url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-RG-Event': eventType,
-                    'X-RG-Signature': hook.secret || '' // TODO: Implementar assinatura HMAC
+                    'X-RG-Signature': signature
                 },
-                body: JSON.stringify({
-                    event: eventType,
-                    timestamp: new Date().toISOString(),
-                    data: payload
-                })
+                body
             }).catch(err => {
                 console.error(`Falha ao disparar webhook ${hook.name}:`, err)
             })
