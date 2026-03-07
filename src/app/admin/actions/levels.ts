@@ -64,18 +64,8 @@ export async function getLevels(orgId?: string): Promise<ActionResult<Level[]>> 
 export async function createLevel(formData: LevelInput & { org_id: string }): Promise<ActionResult<Level>> {
   try {
     const auth = await requirePermission('org.manage')
-    console.log('[createLevel] Iniciando criação:', {
-      formData,
-      authUserId: auth.userId,
-      authRole: auth.role,
-      authOrgId: auth.orgId
-    })
 
     if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
-      console.warn('[createLevel] Tentativa de criação em outra organização bloqueada:', {
-        userOrg: auth.orgId,
-        targetOrg: formData.org_id
-      })
       throw new Error('FORBIDDEN')
     }
 
@@ -96,7 +86,7 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
       .single()
 
     if (error) {
-      console.error('[createLevel] Erro do Supabase:', {
+      console.error('[Action: createLevel] Erro do Supabase:', {
         message: error.message,
         details: error.details,
         hint: error.hint,
@@ -105,12 +95,10 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
       return { success: false, error: sanitizeError(error) }
     }
 
-    console.log('[createLevel] Criado com sucesso:', data)
-
     revalidatePath('/admin/levels')
     return { success: true, data: data as Level }
   } catch (error: unknown) {
-    console.error('[createLevel] Erro crítico:', getErrorMessage(error))
+    console.error('Erro em createLevel:', getErrorMessage(error))
     return { success: false, error: sanitizeError(error) }
   }
 }

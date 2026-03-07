@@ -137,7 +137,7 @@ export async function updateUnit(id: string, formData: UnitInput & { org_id: str
 
     if (error) {
       console.error('[Action: updateUnit] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao atualizar unidade.' }
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/units')

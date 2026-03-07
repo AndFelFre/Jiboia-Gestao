@@ -133,8 +133,8 @@ export async function updateTrack(id: string, formData: TrackInput & { org_id: s
       .single()
 
     if (error) {
-      console.error('Erro ao atualizar trilha:', error.message)
-      return { success: false, error: 'Erro ao atualizar trilha' }
+      console.error('[Action: updateTrack] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/tracks')
@@ -161,8 +161,8 @@ export async function deleteTrack(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('Erro ao deletar trilha:', error.message)
-      return { success: false, error: 'Erro ao remover trilha' }
+      console.error('[Action: deleteTrack] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/tracks')

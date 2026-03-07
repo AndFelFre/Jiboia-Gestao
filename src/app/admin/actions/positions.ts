@@ -107,8 +107,13 @@ export async function createPosition(formData: PositionInput & { org_id: string 
       .single()
 
     if (error) {
-      console.error('[Action: createPosition] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao criar cargo. Verifique os dados.' }
+      console.error('[Action: createPosition] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({
@@ -129,7 +134,8 @@ export async function createPosition(formData: PositionInput & { org_id: string 
 export async function updatePosition(id: string, formData: PositionInput & { org_id: string }): Promise<ActionResult<Position>> {
   try {
     const auth = await requirePermission('org.manage')
-    const validated = positionSchema.parse(formData)
+    const { org_id, ...positionInput } = formData
+    const validated = positionSchema.parse(positionInput)
     const supabase = createAdminSupabaseClient()
 
     // Valor antigo
@@ -152,8 +158,13 @@ export async function updatePosition(id: string, formData: PositionInput & { org
       .single()
 
     if (error) {
-      console.error('[Action: updatePosition] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao atualizar cargo.' }
+      console.error('[Action: updatePosition] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({

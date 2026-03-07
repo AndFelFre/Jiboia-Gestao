@@ -2,8 +2,9 @@ import Link from 'next/link'
 import { getLevels } from '../actions/levels'
 import { getOrganizations } from '../actions/organizations'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Edit } from 'lucide-react'
 import { EmptyState } from '@/components/ui/feedback'
+import { DeleteLevelButton } from './DeleteLevelButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,7 +103,7 @@ export default async function LevelsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-foreground">{level.name}</div>
                         {level.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{level.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{level.description}</p>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -113,13 +114,15 @@ export default async function LevelsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-muted-foreground">{org?.name || '-'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/admin/levels/${level.id}/edit`}
-                          className="text-primary hover:text-primary/80"
-                        >
-                          Editar
-                        </Link>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div className="flex justify-end items-center gap-2">
+                          <Button asChild variant="ghost" size="icon" title="Editar Nível">
+                            <Link href={`/admin/levels/${level.id}/edit`} className="text-primary">
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <DeleteLevelButton id={level.id} name={level.name} />
+                        </div>
                       </td>
                     </tr>
                   )
