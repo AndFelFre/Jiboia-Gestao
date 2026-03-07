@@ -20,9 +20,17 @@ function getErrorMessage(error: unknown): string {
 
 function sanitizeError(error: unknown): string {
   const message = getErrorMessage(error)
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  return 'Erro ao processar solicitação.'
+  const code = (error as any)?.code
+
+  if (code) {
+    return `Erro de Banco (${code}): ${message}`
+  }
+
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos inesperados detectados.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
+  if (message === 'FORBIDDEN') return 'Acesso negado.'
+
+  return `Erro: ${message}`
 }
 
 export async function getPositions(orgId?: string): Promise<ActionResult<Position[]>> {
