@@ -1,12 +1,14 @@
 import { getUserTimeline } from '@/app/admin/actions/dho-timeline'
 import { getUserOnboardingRampUp } from '@/app/admin/actions/dho-onboarding'
 import { getUserLeadershipRites } from '@/app/admin/actions/dho-rites-fetch'
+import { getDHOScorecard } from '@/app/admin/actions/dho-scorecard'
 import { getUsers } from '@/app/admin/actions/users'
 import { getOrganizations } from '@/app/admin/actions/organizations'
 import { getPositions } from '@/app/admin/actions/positions'
 import { UserTimeline } from '@/components/dho/UserTimeline'
 import { OnboardingRampUp } from '@/components/dho/OnboardingRampUp'
 import { LeadershipRites } from '@/components/dho/LeadershipRites'
+import { DHOScorecardView } from '@/components/dho/DHOScorecardView'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, User, Building, Briefcase } from 'lucide-react'
@@ -39,15 +41,17 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
     const currentPos = positions.find(p => p.id === user.position_id)?.title || 'Não definido'
 
     // Fetch DHO Data
-    const [timelineResult, rampUpResult, ritesResult] = await Promise.all([
+    const [timelineResult, rampUpResult, ritesResult, scorecardResult] = await Promise.all([
         getUserTimeline(userId),
         getUserOnboardingRampUp(userId),
-        getUserLeadershipRites(userId)
+        getUserLeadershipRites(userId),
+        getDHOScorecard(userId)
     ])
 
     const timelineEvents = timelineResult.success ? (timelineResult.data || []) : []
     const rampUpMetrics = rampUpResult.success ? rampUpResult.data : null
     const leadershipRites = ritesResult.success ? (ritesResult.data || []) : []
+    const scorecardData = scorecardResult.success ? scorecardResult.data : null
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-12">
@@ -95,6 +99,11 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
                         </div>
                     </div>
                 </div>
+
+                {/* Scorecard Hero */}
+                {scorecardData && (
+                    <DHOScorecardView scorecard={scorecardData} />
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - RampUp & Rites */}
