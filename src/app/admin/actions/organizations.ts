@@ -27,17 +27,20 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const pgError = error as { code: string; message: string; details: string };
-    if (pgError.code === '23505') return 'Este nome ou slug já está em uso (duplicidade).';
-    if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
-    if (pgError.code === '23503') return 'Este registro possui dados vinculados e não pode ser removido.';
+  const message = getErrorMessage(error)
+  const code = (error as any)?.code
+
+  if (code) {
+    if (code === '23505') return 'Este nome ou slug já está em uso.'
+    if (code === '23503') return 'Este registro possui dados vinculados (ex: usuários ou unidades) e não pode ser removido.'
+    return `Erro de Banco (${code}): ${message}`
   }
 
-  const message = getErrorMessage(error)
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
-  if (message === 'FORBIDDEN') return 'Acesso negado.'
-  return 'Erro ao salvar organização.'
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
+  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
+
+  return `Erro: ${message}`
 }
 
 export async function getOrganizations(): Promise<ActionResult> {
@@ -90,8 +93,13 @@ export async function createOrganization(formData: OrganizationInput): Promise<A
       .single()
 
     if (error) {
-      console.error('[Action: createOrganization] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao criar organização. Verifique se o slug já existe.' }
+      console.error('[Action: createOrganization] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({
@@ -141,8 +149,13 @@ export async function updateOrganization(id: string, formData: OrganizationInput
       .single()
 
     if (error) {
-      console.error('[Action: updateOrganization] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao atualizar organização.' }
+      console.error('[Action: updateOrganization] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({
@@ -174,8 +187,8 @@ export async function deleteOrganization(id: string): Promise<ActionResult> {
       .eq('id', id)
 
     if (error) {
-      console.error('Erro ao deletar organização:', error.message)
-      return { success: false, error: 'Erro ao remover organização' }
+      console.error('[Action: deleteOrganization] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({

@@ -20,9 +20,18 @@ function getErrorMessage(error: unknown): string {
 
 function sanitizeError(error: unknown): string {
   const message = getErrorMessage(error)
+  const code = (error as any)?.code
+
+  if (code) {
+    if (code === '23505') return 'Este usuário (e-mail) já está cadastrado.'
+    return `Erro de Banco (${code}): ${message}`
+  }
+
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
   if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
   if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  return 'Erro ao processar solicitação.'
+
+  return `Erro: ${message}`
 }
 
 export async function getUsers(orgId?: string): Promise<ActionResult<User[]>> {
@@ -56,13 +65,9 @@ export async function getUsers(orgId?: string): Promise<ActionResult<User[]>> {
   }
 }
 
-export async function inviteUser(formData: {
-  email: string
-  full_name: string
-  org_id: string
-  unit_id: string
-  role_id: string
-}): Promise<ActionResult> {
+import { userSchema, type UserInput } from '@/validations/schemas'
+
+export async function inviteUser(formData: UserInput & { org_id: string }): Promise<ActionResult> {
   try {
     const auth = await requirePermission('users.manage')
 
@@ -70,14 +75,15 @@ export async function inviteUser(formData: {
       throw new Error('FORBIDDEN')
     }
 
+    const { org_id, ...userInput } = formData
+    const validated = userSchema.parse(userInput)
     const supabase = createAdminSupabaseClient()
 
-    // Cria usuário no auth vindo de admin console
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: formData.email,
+      email: validated.email,
       password: Math.random().toString(36).slice(-8),
       email_confirm: true,
-      user_metadata: { full_name: formData.full_name }
+      user_metadata: { full_name: validated.full_name }
     })
 
     if (authError) {
@@ -87,11 +93,12 @@ export async function inviteUser(formData: {
 
     const userData = {
       id: authData.user.id,
-      email: formData.email,
-      full_name: formData.full_name,
+      email: validated.email,
+      full_name: validated.full_name,
       org_id: formData.org_id,
-      unit_id: formData.unit_id,
-      role_id: formData.role_id,
+      unit_id: validated.unit_id,
+      role_id: validated.role_id,
+      position_id: validated.position_id || null,
       status: 'pending'
     }
 
@@ -101,7 +108,7 @@ export async function inviteUser(formData: {
 
     if (dbError) {
       console.error('[Action: inviteUser] Erro no banco de dados:', dbError.message)
-      return { success: false, error: 'Erro ao salvar perfil do usuário.' }
+      return { success: false, error: sanitizeError(dbError) }
     }
 
     await logAudit({
@@ -111,8 +118,7 @@ export async function inviteUser(formData: {
       newValues: userData,
     })
 
-    // Dispara e-mail de boas-vindas (assíncrono)
-    sendWelcomeEmail(formData.email, formData.full_name).catch(console.error)
+    sendWelcomeEmail(validated.email, validated.full_name).catch(console.error)
 
     revalidatePath('/admin/users')
     return { success: true }
@@ -140,7 +146,7 @@ export async function updateUserStatus(id: string, status: string): Promise<Acti
 
     if (error) {
       console.error('[Action: updateUserStatus] Erro no banco:', error.message)
-      return { success: false, error: 'Erro ao atualizar status do usuário.' }
+      return { success: false, error: sanitizeError(error) }
     }
 
     await logAudit({
