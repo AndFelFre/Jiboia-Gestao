@@ -3,6 +3,7 @@ import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Track, TrackStage } from '@/types'
+import { trackSchema } from '@/validations/schemas'
 
 interface ActionResult<T = unknown> {
   success: boolean
@@ -75,6 +76,7 @@ export async function createTrack(formData: TrackInput & { org_id: string }): Pr
     }
 
     const { org_id, ...trackInput } = formData
+    const validated = trackSchema.parse(trackInput)
     const supabase = createServerSupabaseClient()
 
     const { data, error } = await supabase
@@ -109,6 +111,8 @@ export async function createTrack(formData: TrackInput & { org_id: string }): Pr
 export async function updateTrack(id: string, formData: TrackInput & { org_id: string }): Promise<ActionResult<Track>> {
   try {
     const auth = await requirePermission('org.manage')
+    const { org_id, ...trackInput } = formData
+    const validated = trackSchema.parse(trackInput)
     const supabase = createServerSupabaseClient()
 
     if (auth.role !== 'admin') {
