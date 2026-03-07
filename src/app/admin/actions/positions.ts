@@ -99,6 +99,7 @@ export async function createPosition(formData: PositionInput & { org_id: string 
 
 export async function updatePosition(id: string, formData: PositionInput & { org_id: string }): Promise<ActionResult<Position>> {
   try {
+    const auth = await requirePermission('org.manage')
     const validated = positionSchema.parse(formData)
     const supabase = createAdminSupabaseClient()
 
