@@ -13,6 +13,7 @@ import {
     Briefcase
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { HeatmapActions } from '@/components/analytics/HeatmapActions'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
