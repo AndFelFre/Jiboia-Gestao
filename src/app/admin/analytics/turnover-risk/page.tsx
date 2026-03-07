@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { getTurnoverRiskAnalysis, RiskAnalysis } from '../../actions/analytics'
@@ -76,8 +77,8 @@ export default function TurnoverRiskPage() {
                         <CardHeader className="p-8 pb-4">
                             <div className="flex justify-between items-start mb-2">
                                 <Badge variant="outline" className={`rounded-full border-none px-3 font-bold uppercase text-[10px] ${item.riskLevel === 'high' ? 'bg-red-500/10 text-red-600' :
-                                        item.riskLevel === 'medium' ? 'bg-amber-500/10 text-amber-600' :
-                                            'bg-emerald-500/10 text-emerald-600'
+                                    item.riskLevel === 'medium' ? 'bg-amber-500/10 text-amber-600' :
+                                        'bg-emerald-500/10 text-emerald-600'
                                     }`}>
                                     Risco {item.riskLevel === 'high' ? 'Alto' : item.riskLevel === 'medium' ? 'Médio' : 'Baixo'}
                                 </Badge>

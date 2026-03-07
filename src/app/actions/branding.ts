@@ -52,7 +52,11 @@ export async function getBrandingSettings() {
         }
 
         return null
-    } catch (error) {
+    } catch (error: any) {
+        // Ignora erro de uso dinâmico durante o build do Next.js
+        if (error?.digest?.includes('DYNAMIC_SERVER_USAGE') || error?.message?.includes('dynamic-server-error')) {
+            return null
+        }
         console.error('⚠️ [getBrandingSettings] Erro silencioso ao buscar branding:', error)
         return null
     }

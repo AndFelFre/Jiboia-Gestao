@@ -1,4 +1,5 @@
-﻿import { createServerSupabaseClient } from '@/lib/supabase/server'
+﻿export const dynamic = 'force-dynamic'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/supabase/auth'
 import Link from 'next/link'
 import { BrainCircuit, Star, ArrowRight } from 'lucide-react'

@@ -1,4 +1,5 @@
 import { getCustomReports } from '@/app/admin/actions/custom_reports'
+export const dynamic = 'force-dynamic'
 import { Plus, BarChart3, Clock, MoreVertical } from 'lucide-react'
 import Link from 'next/link'
 import { EmptyState, ErrorState } from '@/components/ui/feedback'

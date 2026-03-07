@@ -1,4 +1,5 @@
 'use server'
+export const dynamic = 'force-dynamic'
 
 import { getSkillHeatmap } from '@/app/admin/actions/analytics'
 import { SkillHeatmap } from '@/components/analytics/SkillHeatmap'
