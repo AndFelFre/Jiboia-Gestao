@@ -14,17 +14,41 @@ interface Organization {
 }
 
 export default async function PositionsPage() {
-  const [positionsResult, orgsResult, levelsResult] = await Promise.all([
-    getPositions(),
-    getOrganizations(),
-    getLevels()
-  ])
+  let positions: any[] = []
+  let organizations: Organization[] = []
+  let levels: any[] = []
+  let error: string | null = null
 
-  const positions = positionsResult.success && positionsResult.data ? positionsResult.data : []
-  const organizations: Organization[] = orgsResult.success && orgsResult.data
-    ? (orgsResult.data as Organization[])
-    : []
-  const levels = levelsResult.success && levelsResult.data ? levelsResult.data : []
+  try {
+    const [positionsResult, orgsResult, levelsResult] = await Promise.all([
+      getPositions(),
+      getOrganizations(),
+      getLevels()
+    ])
+
+    if (positionsResult.success) positions = positionsResult.data || []
+    if (orgsResult.success) organizations = orgsResult.data as Organization[] || []
+    if (levelsResult.success) levels = levelsResult.data || []
+
+    if (!positionsResult.success || !orgsResult.success || !levelsResult.success) {
+      error = positionsResult.error || orgsResult.error || levelsResult.error || 'Erro ao carregar dados'
+    }
+  } catch (e) {
+    console.error('Erro crítico em PositionsPage:', e)
+    error = 'Ocorreu um erro inesperado ao carregar a página.'
+  }
+
+  if (error && positions.length === 0) {
+    return (
+      <div className="p-8 text-center bg-background min-h-screen">
+        <h1 className="text-2xl font-bold text-destructive mb-4">Erro na Aba de Cargos</h1>
+        <p className="text-muted-foreground">{error}</p>
+        <Button asChild className="mt-4" variant="outline">
+          <Link href="/admin">Voltar para Admin</Link>
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
