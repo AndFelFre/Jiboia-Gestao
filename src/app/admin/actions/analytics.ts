@@ -1,4 +1,5 @@
-﻿import { requirePermission, requireAuth, requireOrgAccess } from '@/lib/supabase/auth'
+﻿'use server'
+import { requirePermission, requireAuth, requireOrgAccess } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { sanitizeError } from '@/lib/utils'
 
