@@ -74,6 +74,7 @@ export async function createTrack(formData: TrackInput & { org_id: string }): Pr
       throw new Error('FORBIDDEN')
     }
 
+    const { org_id, ...trackInput } = formData
     const supabase = createServerSupabaseClient()
 
     const { data, error } = await supabase

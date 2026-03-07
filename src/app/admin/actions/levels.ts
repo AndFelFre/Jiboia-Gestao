@@ -69,7 +69,8 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
       throw new Error('FORBIDDEN')
     }
 
-    const validated = levelSchema.parse(formData)
+    const { org_id, ...levelInput } = formData;
+    const validated = levelSchema.parse(levelInput)
     const supabase = createAdminSupabaseClient()
 
     const { data, error } = await supabase
@@ -105,7 +106,8 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
 export async function updateLevel(id: string, formData: LevelInput & { org_id: string }): Promise<ActionResult<Level>> {
   try {
     const auth = await requirePermission('org.manage')
-    const validated = levelSchema.parse(formData)
+    const { org_id, ...levelInput } = formData;
+    const validated = levelSchema.parse(levelInput)
     const supabase = createAdminSupabaseClient()
 
     if (auth.role !== 'admin') {

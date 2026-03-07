@@ -20,17 +20,19 @@ function getErrorMessage(error: unknown): string {
 
 function sanitizeError(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'code' in error) {
-    const pgError = error as { code: string };
-    if (pgError.code === '23505') return 'Esta unidade já existe nesta organização.';
+    const pgError = error as { code: string; message: string };
+    if (pgError.code === '23505') return 'Já existe um registro com estes dados (duplicidade).';
     if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
-    if (pgError.code === '23503') return 'Não é possível remover esta unidade pois existem dados vinculados a ela.';
+    if (pgError.code === '23503') return 'Não é possível remover: existem outros registros vinculados.';
+    return `Erro de Banco (${pgError.code}): ${pgError.message}`;
   }
 
   const message = getErrorMessage(error)
+  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos inesperados detectados.'
   if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
   if (message === 'FORBIDDEN') return 'Acesso negado.'
 
-  return 'Erro ao processar unidade. Tente novamente.'
+  return `Erro: ${message}`
 }
 
 export async function getUnits(orgId?: string): Promise<ActionResult> {
