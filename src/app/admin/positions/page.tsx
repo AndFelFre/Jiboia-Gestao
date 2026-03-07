@@ -28,9 +28,9 @@ export default async function PositionsPage() {
     ])
 
     console.log('[PositionsPage] Resultados:', {
-      positions: positionsResult.success ? `${positionsResult.data?.length} encontrados` : `ERRO: ${positionsResult.error}`,
-      orgs: orgsResult.success ? `${orgsResult.data?.length} encontrados` : `ERRO: ${orgsResult.error}`,
-      levels: levelsResult.success ? `${levelsResult.data?.length} encontrados` : `ERRO: ${levelsResult.error}`
+      positions: positionsResult.success ? `${(positionsResult.data as any[])?.length || 0} encontrados` : `ERRO: ${positionsResult.error}`,
+      orgs: orgsResult.success ? `${(orgsResult.data as any[])?.length || 0} encontrados` : `ERRO: ${orgsResult.error}`,
+      levels: levelsResult.success ? `${(levelsResult.data as any[])?.length || 0} encontrados` : `ERRO: ${levelsResult.error}`
     })
 
     if (positionsResult.success) positions = positionsResult.data || []
