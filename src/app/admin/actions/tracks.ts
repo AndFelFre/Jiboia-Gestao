@@ -16,10 +16,18 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const pgError = error as { code: string };
+    if (pgError.code === '23505') return 'Esta trilha já existe nesta organização.';
+    if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
+    if (pgError.code === '23503') return 'Não é possível remover esta trilha por possuir vínculos ativos.';
+  }
+
   const message = getErrorMessage(error)
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  return 'Erro ao processar solicitação.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
+  if (message === 'FORBIDDEN') return 'Acesso negado.'
+
+  return 'Erro ao processar trilha. Tente novamente.'
 }
 
 interface TrackInput {
@@ -80,8 +88,13 @@ export async function createTrack(formData: TrackInput & { org_id: string }): Pr
       .single()
 
     if (error) {
-      console.error('Erro ao criar trilha:', error.message)
-      return { success: false, error: 'Erro ao criar trilha' }
+      console.error('[Action: createTrack] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/tracks')

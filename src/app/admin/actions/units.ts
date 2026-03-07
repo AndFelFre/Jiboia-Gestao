@@ -19,12 +19,18 @@ function getErrorMessage(error: unknown): string {
 }
 
 function sanitizeError(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const pgError = error as { code: string };
+    if (pgError.code === '23505') return 'Esta unidade já existe nesta organização.';
+    if (pgError.code === '42501') return 'Permissão de gravação negada no banco de dados.';
+    if (pgError.code === '23503') return 'Não é possível remover esta unidade pois existem dados vinculados a ela.';
+  }
+
   const message = getErrorMessage(error)
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-  if (message === 'ACCOUNT_INACTIVE') return 'Sua conta está inativa.'
-  if (message === 'USER_NOT_FOUND') return 'Usuário não encontrado.'
-  return 'Erro ao processar solicitação.'
+  if (message === 'UNAUTHORIZED') return 'Sessão expirada.'
+  if (message === 'FORBIDDEN') return 'Acesso negado.'
+
+  return 'Erro ao processar unidade. Tente novamente.'
 }
 
 export async function getUnits(orgId?: string): Promise<ActionResult> {
@@ -79,8 +85,13 @@ export async function createUnit(formData: UnitInput & { org_id: string }): Prom
       .single()
 
     if (error) {
-      console.error('[Action: createUnit] Erro do Supabase:', error.message, error.details, error.hint)
-      return { success: false, error: 'Erro ao criar unidade. Verifique os dados.' }
+      console.error('[Action: createUnit] Erro do Supabase:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { success: false, error: sanitizeError(error) }
     }
 
     revalidatePath('/admin/units')
