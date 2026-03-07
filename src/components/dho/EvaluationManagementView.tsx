@@ -25,6 +25,7 @@ import {
 } from '@/app/admin/actions/dho-performance'
 import type { PerformanceEvaluation } from '@/types'
 import { cn } from '@/lib/utils'
+import { toast } from '@/components/ui/feedback'
 
 interface EvaluationManagementViewProps {
     userId: string
@@ -62,12 +63,17 @@ export function EvaluationManagementView({ userId, evaluation }: EvaluationManag
             status: publish ? 'in_progress' : (isDraft ? 'draft' : 'in_progress')
         })
         setIsSaving(false)
+        if (res.success) {
+            toast.success(publish ? 'Avaliação publicada com sucesso!' : 'Alterações salvas como rascunho.')
+        } else {
+            toast.error('Erro ao salvar: ' + res.error)
+        }
     }
 
     const handleCloseCycle = async () => {
         if (!evaluation) return
         if (!formData.potential_score || formData.potential_score === 0) {
-            alert('A nota de Potencial é obrigatória para calibrar e fechar o ciclo.')
+            toast.error('A nota de Potencial é obrigatória para calibrar e fechar o ciclo.')
             setActiveTab('calibration')
             return
         }
@@ -75,12 +81,20 @@ export function EvaluationManagementView({ userId, evaluation }: EvaluationManag
         setIsClosing(true)
         const res = await closeEvaluationCycle(evaluation.id)
         setIsClosing(false)
-        if (!res.success) alert(res.error)
+        if (res.success) {
+            toast.success('Ciclo finalizado com sucesso! Dados persistidos no snapshot.')
+        } else {
+            toast.error('Erro ao finalizar ciclo: ' + res.error)
+        }
     }
 
     const handleCreateCycle = async () => {
         const res = await createEvaluationCycle(userId, newCycleDates.start, newCycleDates.end)
-        if (!res.success) alert(res.error)
+        if (res.success) {
+            toast.success('Novo ciclo de avaliação aberto com sucesso.')
+        } else {
+            toast.error('Erro ao abrir ciclo: ' + res.error)
+        }
     }
 
     if (!evaluation) {

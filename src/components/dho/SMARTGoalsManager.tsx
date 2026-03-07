@@ -10,6 +10,7 @@ import type { PDIItem } from '@/types'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { toast } from '@/components/ui/feedback'
 
 interface SMARTGoalsManagerProps {
     evaluationId: string
@@ -31,6 +32,9 @@ export function SMARTGoalsManager({ evaluationId, userId, goals, isReadOnly }: S
         if (res.success) {
             setIsAdding(false)
             setNewGoal({ title: '', description: '', deadline: '' })
+            toast.success('Meta SMART adicionada com sucesso!')
+        } else {
+            toast.error('Erro ao adicionar meta: ' + res.error)
         }
     }
 

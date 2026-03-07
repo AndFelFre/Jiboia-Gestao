@@ -36,6 +36,7 @@ export const viewport = {
 
 import { getBrandingSettings } from "./actions/branding";
 import { DynamicThemeProvider } from "@/components/providers/DynamicThemeProvider";
+import { Toaster } from "@/components/ui/feedback";
 
 export default async function RootLayout({
   children,
@@ -58,6 +59,7 @@ export default async function RootLayout({
       >
         <DynamicThemeProvider settings={branding as any}>
           {children}
+          <Toaster />
         </DynamicThemeProvider>
         <script
           dangerouslySetInnerHTML={{

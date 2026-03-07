@@ -1,5 +1,8 @@
 import { getNineBoxMatrixData } from '@/app/admin/actions/dho-performance'
 import { NineBoxMatrixGrid } from '@/components/dho/NineBoxMatrixGrid'
+// ... (existing imports)
+
+export const dynamic = 'force-dynamic'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { TrendingUp, Users, Info, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'

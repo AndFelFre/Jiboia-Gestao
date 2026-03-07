@@ -3,8 +3,13 @@ import { AlertCircle, Inbox, Loader2 } from "lucide-react"
 import { Button } from "./button"
 import { Card, CardContent } from "./card"
 import { cn } from "@/lib/utils"
+import { Toaster as Sonner, toast as sonnerToast } from "sonner"
+
+export const Toaster = Sonner
+export const toast = sonnerToast
 
 interface FeedbackStateProps {
+    // ... existing code
     title: string
     description?: string
     className?: string
