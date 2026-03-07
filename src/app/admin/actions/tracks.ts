@@ -113,8 +113,6 @@ export async function updateTrack(id: string, formData: TrackInput & { org_id: s
     const auth = await requirePermission('org.manage')
     const { org_id, ...trackInput } = formData
     const validated = trackSchema.parse(trackInput)
-    const { org_id, ...trackInput } = formData
-    const validated = trackSchema.parse(trackInput)
     const supabase = createServerSupabaseClient()
 
     if (auth.role !== 'admin') {
