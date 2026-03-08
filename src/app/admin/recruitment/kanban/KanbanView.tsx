@@ -12,9 +12,11 @@ import {
     CheckCircle2,
     XCircle,
     Loader2,
-    Zap
+    Zap,
+    Paperclip
 } from 'lucide-react'
 import { transitionCandidate } from '@/services/recruitment/candidates'
+
 import { useRouter } from 'next/navigation'
 
 const STAGES = [
@@ -140,6 +142,12 @@ export default function KanbanView({ initialCandidates, jobs }: KanbanViewProps)
                                                 </Button>
                                             </div>
                                             <div className="flex items-center gap-2">
+                                                {candidate.resume_url && (
+                                                    <span title="Currículo Anexado">
+                                                        <Paperclip className="w-3 h-3 text-emerald-500 mr-1" />
+                                                    </span>
+                                                )}
+
                                                 <span className="text-[10px] text-muted-foreground font-medium">
                                                     {new Date(candidate.created_at).toLocaleDateString('pt-BR')}
                                                 </span>
@@ -147,6 +155,7 @@ export default function KanbanView({ initialCandidates, jobs }: KanbanViewProps)
                                                     <User className="w-3 h-3 text-muted-foreground" />
                                                 </div>
                                             </div>
+
                                         </div>
                                     </Card>
                                 ))}

@@ -228,3 +228,28 @@ export async function createCandidate(formData: Partial<Candidate>): Promise<Act
         return { success: false, error: sanitizeError(error) }
     }
 }
+
+/**
+ * Gera uma URL assinada temporária para visualização do currículo.
+ * O bucket 'resumes' é privado por segurança.
+ */
+export async function getResumeSignedUrl(path: string): Promise<ActionResult<string>> {
+    try {
+        await requirePermission('candidates.manage')
+        const supabase = createServerSupabaseClient()
+
+        const { data, error } = await supabase.storage
+            .from('resumes')
+            .createSignedUrl(path, 3600) // Válido por 1 hora
+
+        if (error || !data) {
+            console.error('[CandidatesService] Error creating signed URL:', error)
+            return { success: false, error: 'Erro ao gerar link do currículo.' }
+        }
+
+        return { success: true, data: data.signedUrl }
+    } catch (error: unknown) {
+        return { success: false, error: sanitizeError(error) }
+    }
+}
+

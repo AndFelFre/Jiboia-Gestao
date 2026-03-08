@@ -8,13 +8,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Badge } from '@/components/ui/badge'
 import {
     ChevronLeft, Loader2, Target, Zap, Trophy, Brain,
-    MessageCircle, Heart, Lightbulb, Shield, FastForward, Sparkles
+    MessageCircle, Heart, Lightbulb, Shield, FastForward, Sparkles, FileText
 } from 'lucide-react'
 import { evaluateCandidate } from '@/services/recruitment/evaluations'
 
 interface InterviewFormProps {
-    candidate: { id: string, full_name: string }
+    candidate: { id: string, full_name: string, resumeUrl?: string | null }
 }
+
 
 const CULTURE_PILLARS = [
     { key: 'fit_integrity', label: 'Integridade', icon: Shield, desc: 'Ética e honestidade em situações críticas.' },
@@ -81,11 +82,23 @@ export default function InterviewFormSTAR({ candidate }: InterviewFormProps) {
                         </p>
                     </div>
                 </div>
-                <Badge variant="secondary" className="px-4 py-1.5 rounded-full bg-primary/10 text-primary border-primary/20">
-                    <Sparkles className="w-3 h-3 mr-2" />
-                    Método Corporativo
-                </Badge>
+
+                <div className="flex items-center gap-3">
+                    {candidate.resumeUrl && (
+                        <Button asChild variant="outline" size="sm" className="bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-full h-9 px-4">
+                            <Link href={candidate.resumeUrl} target="_blank">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Currículo
+                            </Link>
+                        </Button>
+                    )}
+                    <Badge variant="secondary" className="px-4 py-1.5 rounded-full bg-primary/10 text-primary border-primary/20">
+                        <Sparkles className="w-3 h-3 mr-2" />
+                        Método Corporativo
+                    </Badge>
+                </div>
             </div>
+
 
             <form id="star-form" onSubmit={handleSubmit} className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
