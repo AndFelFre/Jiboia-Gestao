@@ -84,8 +84,8 @@ export function ExecutiveReportTemplate({ data }: ExecutiveReportTemplateProps) 
                                 <td className="py-4 font-black">{row.avgRiskScore !== null ? row.avgRiskScore.toFixed(1) : 'Oculto'}</td>
                                 <td className="py-4">
                                     <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${row.riskLevel === 'high' ? 'bg-rose-100 text-rose-600' :
-                                            row.riskLevel === 'medium' ? 'bg-amber-100 text-amber-600' :
-                                                'bg-emerald-100 text-emerald-600'
+                                        row.riskLevel === 'medium' ? 'bg-amber-100 text-amber-600' :
+                                            'bg-emerald-100 text-emerald-600'
                                         }`}>
                                         {row.riskLevel}
                                     </span>
@@ -103,20 +103,21 @@ export function ExecutiveReportTemplate({ data }: ExecutiveReportTemplateProps) 
                     <Info className="w-3 h-3 mt-0.5 shrink-0" />
                     <p>
                         **NOTA DE PRIVACIDADE (LGPD/GDPR):** Este relatório utiliza técnicas de anonimização segregada.
-                        Dados baseados em amostras inferiores a 3 (N < 3) são automaticamente ocultados para proteger a identidade individual.
+                        Dados baseados em amostras inferiores a 3 (N &lt; 3) são automaticamente ocultados para proteger a identidade individual.
                         Este documento é confidencial e destinado exclusivamente a ritos de calibração de liderança.
                     </p>
                 </div>
                 <p className="font-bold uppercase tracking-tighter">© 2026 Projeto Jiboia • Inteligência Operacional de DHO</p>
             </footer>
 
-            <style jsx global>{`
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @media print {
                     @page { margin: 2cm; }
                     body { -webkit-print-color-adjust: exact; }
                     .break-before-page { break-before: page; }
                 }
-            `}</style>
+            ` }} />
         </div>
     )
 }

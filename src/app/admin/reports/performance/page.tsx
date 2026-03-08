@@ -1,6 +1,7 @@
 import { getExecutiveSummaryReport } from '@/app/admin/actions/reports'
 import { ExecutiveReportTemplate } from '@/components/admin/reports/ExecutiveReportTemplate'
-import { FileText, Printer, ArrowLeft, Download } from 'lucide-react'
+import { PrintButton } from '@/components/admin/reports/PrintButton'
+import { FileText, ArrowLeft, Info } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -42,14 +43,7 @@ export default async function ExecutiveReportPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Button
-                            className="bg-primary text-white rounded-2xl h-11 px-8 font-bold flex items-center gap-2 hover:scale-105 transition-transform"
-                            // @ts-ignore
-                            onClick="window.print()"
-                        >
-                            <Printer className="w-4 h-4" />
-                            Imprimir / Salvar PDF
-                        </Button>
+                        <PrintButton />
                     </div>
                 </div>
 
