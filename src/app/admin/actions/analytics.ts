@@ -311,6 +311,71 @@ export async function getTurnoverRiskAnalysis(): Promise<{ success: boolean, dat
 }
 
 /**
+ * Busca dados de risco de retenção agregados por unidade (Fase 10)
+ */
+export async function getRetentionRiskData(): Promise<{ success: boolean, data?: any[], error?: string }> {
+    try {
+        const auth = await requirePermission('org.manage')
+        const supabase = createServerSupabaseClient()
+
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name, unit_id, created_at')
+            .eq('org_id', auth.orgId)
+            .eq('status', 'active')
+
+        if (usersError || !users) throw new Error('Erro ao buscar colaboradores')
+
+        const unitRisks: Record<string, { totalScore: number, count: number }> = {}
+
+        for (const user of users) {
+            const daysSinceCreated = Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))
+            let score = 0
+
+            const { data: onboarding } = await supabase
+                .from('user_onboarding_progress')
+                .select('status')
+                .eq('user_id', user.id)
+
+            const totalItems = onboarding?.length || 0
+            const completedItems = onboarding?.filter(i => i.status === 'completed').length || 0
+            if (totalItems > 0 && completedItems < totalItems && daysSinceCreated > 30) score += 30
+
+            const { data: evaluations } = await supabase
+                .from('performance_evaluations')
+                .select('created_at')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+
+            if (!evaluations || evaluations.length === 0) {
+                if (daysSinceCreated > 90) score += 20
+            } else {
+                const lastEval = new Date(evaluations[0].created_at)
+                const daysSinceEval = Math.floor((Date.now() - lastEval.getTime()) / (1000 * 60 * 60 * 24))
+                if (daysSinceEval > 180) score += 25
+            }
+
+            const unitId = user.unit_id || 'unassigned'
+            if (!unitRisks[unitId]) unitRisks[unitId] = { totalScore: 0, count: 0 }
+            unitRisks[unitId].totalScore += score
+            unitRisks[unitId].count += 1
+        }
+
+        const aggregatedData = Object.entries(unitRisks).map(([unitId, data]) => ({
+            unitId,
+            avgRiskScore: data.count >= 3 ? data.totalScore / data.count : null,
+            sampleSize: data.count,
+            riskLevel: data.count >= 3 ? (data.totalScore / data.count > 60 ? 'high' : data.totalScore / data.count > 30 ? 'medium' : 'low') : 'hidden'
+        }))
+
+        return { success: true, data: aggregatedData }
+    } catch (error) {
+        return { success: false, error: sanitizeError(error) }
+    }
+}
+
+/**
  * Calcula o Heatmap de Competências da organização
  */
 export async function getSkillHeatmap(unitId?: string): Promise<{ success: boolean, data?: SkillHeatmapData, error?: string }> {

@@ -2,6 +2,8 @@ import { getPerformanceOrganizationAnalytics } from '@/app/admin/actions/dho-per
 import { PerformanceHeatmap } from '@/components/dho/analytics/PerformanceHeatmap'
 import { SMARTConversionFunnel } from '@/components/dho/analytics/SMARTConversionFunnel'
 import { PerformanceTrendChart } from '@/components/dho/analytics/PerformanceTrendChart'
+import { SMARTRankingTable } from '@/components/dho/analytics/SMARTRankingTable'
+import { RampupPerformanceCorrelation } from '@/components/dho/analytics/RampupPerformanceCorrelation'
 import { TrendingUp, ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -78,9 +80,21 @@ export default async function PerformanceAnalyticsPage() {
                                 <PerformanceHeatmap data={data} />
                             </div>
 
+                            {/* Ranking SMART */}
+                            <div className="lg:col-span-1">
+                                <SMARTRankingTable data={data} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Funil de Conversão SMART */}
                             <div className="lg:col-span-1">
                                 <SMARTConversionFunnel data={data} />
+                            </div>
+
+                            {/* Correlação Rampagem vs Performance */}
+                            <div className="lg:col-span-1">
+                                <RampupPerformanceCorrelation data={data} />
                             </div>
                         </div>
 
