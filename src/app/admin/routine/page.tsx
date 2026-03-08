@@ -1,42 +1,26 @@
-import { createServerSupabaseClientReadOnly } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requirePermission } from '@/lib/supabase/auth'
 import { Target, Activity } from 'lucide-react'
 import { CreateRoutineDefinitionForm } from '@/components/routine/CreateRoutineDefinitionForm'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminRoutinePage() {
-    const supabase = createServerSupabaseClientReadOnly()
+    // Auth centralizado — RLS (091 superadmin bypass) garante isolamento
+    const auth = await requirePermission('org.manage')
+    const supabase = createServerSupabaseClient()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
-
-    const { data: userData } = await supabase
-        .from('users')
-        .select('id, org_id, roles(name)')
-        .eq('id', user.id)
-        .single()
-
-    const roleData = userData?.roles as any
-    const roleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
-
-    if (roleName !== 'admin' && roleName !== 'leader') {
-        redirect('/dashboard?error=access_denied')
-    }
-
-    // Busca metas
+    // Busca metas (RLS filtra por org_id automaticamente)
     const { data: definitions } = await supabase
         .from('routine_definitions')
         .select('*')
-        .eq('org_id', userData?.org_id)
         .order('created_at', { ascending: false })
 
-    // Busca preenchimentos de hoje da Org inteira
+    // Busca preenchimentos de hoje
     const today = new Date().toISOString().split('T')[0]
     const { data: todayInputs } = await supabase
         .from('routine_inputs')
         .select('achieved_value, notes, users(full_name), routine_definitions(title, target_value)')
-        .eq('org_id', userData?.org_id)
         .eq('input_date', today)
 
     return (
