@@ -17,9 +17,12 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { PDIItem, DHORiteType } from '@/types'
 
+import { AddRiteModal } from './AddRiteModal'
+
 interface LeadershipRitesProps {
     rites: PDIItem[]
     userId: string
+    userName: string
 }
 
 const RITE_CONFIG: Record<DHORiteType, { label: string; icon: any; color: string; bgColor: string }> = {
@@ -43,7 +46,7 @@ const RITE_CONFIG: Record<DHORiteType, { label: string; icon: any; color: string
     }
 }
 
-export function LeadershipRites({ rites, userId }: LeadershipRitesProps) {
+export function LeadershipRites({ rites, userId, userName }: LeadershipRitesProps) {
     return (
         <Card className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <CardHeader className="border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between space-y-0 py-4 px-6">
@@ -51,10 +54,7 @@ export function LeadershipRites({ rites, userId }: LeadershipRitesProps) {
                     <CardTitle className="text-base font-black text-slate-800 tracking-tight uppercase">Ritos de Liderança</CardTitle>
                     <CardDescription className="text-xs font-medium text-slate-500">Histórico de acompanhamento e feedbacks</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" className="h-8 gap-1 rounded-lg border-slate-200 text-xs font-bold">
-                    <Plus className="w-3.5 h-3.5" />
-                    Novo Rito
-                </Button>
+                <AddRiteModal userId={userId} userName={userName} />
             </CardHeader>
             <CardContent className="p-0">
                 {rites.length === 0 ? (

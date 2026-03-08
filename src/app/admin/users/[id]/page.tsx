@@ -116,7 +116,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
                     {/* Left Column - RampUp & Rites */}
                     <div className="lg:col-span-1 space-y-6">
                         <OnboardingRampUp metrics={rampUpMetrics} />
-                        <LeadershipRites rites={leadershipRites} userId={userId} />
+                        <LeadershipRites rites={leadershipRites} userId={userId} userName={user.full_name || 'Usuário'} />
                     </div>
 
                     {/* Right Column - Timeline */}
