@@ -46,7 +46,10 @@ function sanitizeError(error: unknown): string {
 export async function getOrganizations(): Promise<ActionResult> {
   try {
     const auth = await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
+    // Superadmin precisa do admin client (sem org_id no RLS)
+    const supabase = auth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
 
     // Filtragem por Soft Delete na origem
     let query = supabase
