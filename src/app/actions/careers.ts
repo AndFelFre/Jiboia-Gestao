@@ -1,20 +1,19 @@
 'use server'
 
-import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { publicApplicationSchema } from '@/validations/careers'
 
 /**
- * Lista vagas públicas — apenas campos seguros de exibição.
- * Usa admin client pois visitantes públicos não têm sessão Supabase.
+ * Lista vagas públicas — RLS policy `careers_public_read_open_jobs`
+ * permite anon ler apenas vagas com status = 'open'.
  */
 export async function getPublicJobs() {
     try {
-        const supabase = createAdminSupabaseClient()
+        const supabase = createServerSupabaseClient()
 
         const { data, error } = await supabase
             .from('jobs')
             .select('id, title, description, location, employment_type, salary_min, salary_max, organizations(name)')
-            .eq('status', 'open')
             .order('created_at', { ascending: false })
 
         if (error) {
@@ -30,17 +29,16 @@ export async function getPublicJobs() {
 
 /**
  * Busca detalhes de uma vaga pública por ID.
- * Campos expostos: título, descrição, requisitos, local. Sem IDs internos de org/user.
+ * RLS garante que só vagas abertas são visíveis para anon.
  */
 export async function getPublicJobById(id: string) {
     try {
-        const supabase = createAdminSupabaseClient()
+        const supabase = createServerSupabaseClient()
 
         const { data, error } = await supabase
             .from('jobs')
             .select('id, title, description, requirements, responsibilities, location, employment_type, salary_min, salary_max, organizations(name), positions(title)')
             .eq('id', id)
-            .eq('status', 'open')
             .single()
 
         if (error || !data) {
@@ -56,10 +54,12 @@ export async function getPublicJobById(id: string) {
 /**
  * Write-Only Vault: candidatura pública opaca.
  * 
- * 1. Valida Zod agressivo (strip HTML, max lengths)
- * 2. INSERT em candidates via admin client
- * 3. Retorno OPACO — sem IDs, sem eco de dados
- * 4. Erro GENÉRICO — sem pistas da estrutura SQL
+ * Segurança delegada ao PostgreSQL:
+ * - RLS `careers_public_insert_candidate` valida que a vaga existe e está aberta
+ * - Anon não tem SELECT/UPDATE/DELETE em candidates
+ * - Zod sanitiza inputs antes do INSERT
+ * 
+ * Retorno OPACO — sem IDs, sem eco de dados.
  */
 export async function submitApplication(formData: unknown) {
     try {
@@ -75,28 +75,29 @@ export async function submitApplication(formData: unknown) {
 
         const { job_id, full_name, email, phone, linkedin_url, summary } = parsed.data
 
-        // Camada 2: Verificar se a vaga existe e está aberta
-        const supabase = createAdminSupabaseClient()
+        // Camada 2: Buscar org_id da vaga no servidor (NUNCA do cliente)
+        const supabase = createServerSupabaseClient()
 
         const { data: job, error: jobError } = await supabase
             .from('jobs')
-            .select('id, org_id, status')
+            .select('id, org_id')
             .eq('id', job_id)
             .single()
 
-        if (jobError || !job || job.status !== 'open') {
+        // RLS já filtra vagas fechadas — se não achou, não existe ou não está aberta
+        if (jobError || !job) {
             return {
                 success: false,
                 message: 'Esta vaga não está mais disponível.'
             }
         }
 
-        // Camada 3: INSERT opaco (Write-Only Vault)
+        // Camada 3: INSERT opaco — RLS WITH CHECK valida consistência
         const { error: insertError } = await supabase
             .from('candidates')
             .insert({
                 job_id,
-                org_id: job.org_id,
+                org_id: job.org_id, // Extraído do servidor, NUNCA do cliente
                 full_name,
                 email,
                 phone: phone || null,
@@ -110,7 +111,6 @@ export async function submitApplication(formData: unknown) {
             })
 
         if (insertError) {
-            // Erro de duplicata (mesmo e-mail na mesma vaga)
             if (insertError.code === '23505') {
                 return {
                     success: false,
@@ -119,7 +119,6 @@ export async function submitApplication(formData: unknown) {
             }
 
             console.error('[Careers] Erro ao salvar candidatura:', insertError.message)
-            // Camada 4: Erro genérico — sem pistas
             return {
                 success: false,
                 message: 'Erro ao processar candidatura. Tente novamente mais tarde.'
