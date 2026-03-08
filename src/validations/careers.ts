@@ -34,6 +34,22 @@ export const publicApplicationSchema = z.object({
         .optional()
         .or(z.literal(''))
         .transform(v => v ? v.replace(/<[^>]*>/g, '') : v), // Strip HTML tags
+    resume_file: z
+        .any()
+        .optional()
+        .refine((file) => {
+            if (!file || typeof file === 'string') return true
+            return file.size <= 5 * 1024 * 1024
+        }, 'O arquivo deve ter no máximo 5MB.')
+        .refine((file) => {
+            if (!file || typeof file === 'string') return true
+            const validTypes = [
+                'application/pdf',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/msword'
+            ]
+            return validTypes.includes(file.type)
+        }, 'Apenas arquivos PDF ou DOCX são permitidos.'),
 })
 
 export type PublicApplicationInput = z.infer<typeof publicApplicationSchema>

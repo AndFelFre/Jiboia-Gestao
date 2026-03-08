@@ -39,6 +39,7 @@ export default function ApplyPage({ params }: { params: { id: string } }) {
             linkedin_url: formData.get('linkedin_url') as string,
             summary: formData.get('summary') as string,
             turnstile_token: turnstileToken,
+            resume_file: formData.get('resume_file'),
         }
 
         const res = await submitApplication(payload)
@@ -95,15 +96,22 @@ export default function ApplyPage({ params }: { params: { id: string } }) {
                         <Input id="email" name="email" type="email" placeholder="seu@email.com" required maxLength={100} className="mt-1" />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="phone">Telefone</Label>
-                            <Input id="phone" name="phone" placeholder="(11) 99999-9999" maxLength={20} className="mt-1" />
-                        </div>
-                        <div>
-                            <Label htmlFor="linkedin_url">LinkedIn</Label>
-                            <Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/..." maxLength={200} className="mt-1" />
-                        </div>
+                    <div>
+                        <Label htmlFor="linkedin_url">LinkedIn</Label>
+                        <Input id="linkedin_url" name="linkedin_url" placeholder="https://linkedin.com/in/..." maxLength={200} className="mt-1" />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="resume_file">Currículo (PDF ou DOCX) *</Label>
+                        <Input
+                            id="resume_file"
+                            name="resume_file"
+                            type="file"
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            required
+                            className="mt-1 file:bg-primary file:text-primary-foreground file:border-0 file:rounded-md file:px-3 file:py-1 file:mr-3 hover:file:bg-primary/90 cursor-pointer"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1 text-emerald-600 font-medium">Máximo 5MB • Seguro e Privado</p>
                     </div>
 
                     <div>

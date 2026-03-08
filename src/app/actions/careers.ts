@@ -104,12 +104,38 @@ export async function submitApplication(formData: unknown) {
             }
         }
 
-        const { job_id, full_name, email, phone, linkedin_url, summary } = parsed.data
+        const { job_id, full_name, email, phone, linkedin_url, summary, resume_file } = parsed.data
 
         // Camada 2: Server client — RLS anon filtra vagas abertas automaticamente
         const supabase = createServerSupabaseClient()
 
-        // Camada 3: INSERT opaco — Trigger preenche org_id, RLS WITH CHECK valida
+        // Camada 3: Upload do Currículo (Fortaleza de Uploads)
+        let resumeUrl = null
+        if (resume_file && resume_file instanceof File && resume_file.size > 0) {
+            const fileExt = resume_file.name.split('.').pop()
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+            const filePath = `${job_id}/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('resumes')
+                .upload(filePath, resume_file, {
+                    contentType: resume_file.type,
+                    upsert: false
+                })
+
+            if (uploadError) {
+                console.error('[Careers] Erro no upload do currículo:', uploadError.message)
+                return {
+                    success: false,
+                    message: 'Erro ao enviar currículo. Tente novamente ou use um link.'
+                }
+            }
+
+            // Guardamos o caminho interno do bucket
+            resumeUrl = filePath
+        }
+
+        // Camada 4: INSERT opaco — Trigger preenche org_id, RLS WITH CHECK valida
         // O front-end NUNCA envia org_id — o banco preenche sozinho
         const { error: insertError } = await supabase
             .from('candidates')
@@ -120,6 +146,7 @@ export async function submitApplication(formData: unknown) {
                 email,
                 phone: phone || null,
                 linkedin_url: linkedin_url || null,
+                resume_url: resumeUrl, // Novo campo preenchido
                 notes: summary || null,
                 source: 'careers_portal',
                 stage: 'new',

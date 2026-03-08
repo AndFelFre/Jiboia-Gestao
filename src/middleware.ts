@@ -22,17 +22,59 @@ function redirectWithCookies(request: NextRequest, response: NextResponse, to: s
   return redirect
 }
 
+// Válvula de Rede: Rate Limiting para o Portal de Carreiras (In-Memory Best Effort)
+// Na Vercel Edge, este Map é compartilhado apenas na mesma instância/região.
+const CAREERS_RATE_LIMIT = new Map<string, number[]>()
+const LIMIT_PER_HOUR = 3
+const WINDOW_MS = 60 * 60 * 1000 // 1 hora
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const timestamps = CAREERS_RATE_LIMIT.get(ip) || []
+
+  // Limpa entradas antigas
+  const validTimestamps = timestamps.filter(t => now - t < WINDOW_MS)
+
+  if (validTimestamps.length >= LIMIT_PER_HOUR) {
+    return false
+  }
+
+  validTimestamps.push(now)
+  CAREERS_RATE_LIMIT.set(ip, validTimestamps)
+  return true
+}
+
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  const method = request.method
+
+  // 1. Camada de Proteção de Rede: Rate Limiting para Candidaturas (Portal de Carreiras)
+  if (path.startsWith('/careers/') && path.endsWith('/apply') && method === 'POST') {
+    const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1'
+
+    if (!checkRateLimit(ip)) {
+      console.warn(`[RateLimit] Bloqueado excesso de candidaturas para IP: ${ip}`)
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          message: 'Limite de candidaturas excedido. Tente novamente em uma hora.'
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+  }
+
+  // 2. Identificação de Tenant e Headers
   const host = request.headers.get('host') || '';
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
-
-  // Ajusta request headers para suportar identificação de tenant downstream
   const requestHeaders = new Headers(request.headers);
 
   if (!isLocalhost && host) {
     requestHeaders.set('x-tenant-domain', host);
   } else if (isLocalhost) {
-    // Para facilitar testes locais: se enviar no header 'x-local-tenant', o middleware acata
     const localTenant = request.headers.get('x-local-tenant');
     if (localTenant) {
       requestHeaders.set('x-tenant-domain', localTenant);
@@ -43,6 +85,7 @@ export async function middleware(request: NextRequest) {
     request: { headers: requestHeaders },
   })
 
+  // 3. Cliente Supabase e Sessão
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -70,37 +113,29 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
-
-  // Verifica se é uma rota protegida
+  // 4. RBAC e Proteção de Rotas
   const protectedRoute = Object.keys(ROUTE_PERMISSIONS).find(route =>
     path.startsWith(route)
   )
 
-  // Redireciona usuário logado fora do login
   if (path === '/login' && user) {
     return redirectWithCookies(request, response, '/dashboard')
   }
 
-  // Protege rotas que requerem autenticação
   if (protectedRoute) {
     if (!user) {
       return redirectWithCookies(request, response, '/login')
     }
 
-    // RBAC: Verifica permissão de role
-    // Tenta obter do JWT primeiro (mais rápido, sem query no banco)
     const userRole = user.app_metadata?.role || user.user_metadata?.role
 
     if (userRole) {
-      // Role está no JWT, verifica permissão
       const allowedRoles = ROUTE_PERMISSIONS[protectedRoute]
       if (!allowedRoles.includes(userRole)) {
         console.warn(`Acesso negado: usuário ${user.id} com role '${userRole}' tentou acessar ${path}`)
         return redirectWithCookies(request, response, '/dashboard?error=access_denied')
       }
     } else {
-      // Role não está no JWT, verifica no banco
       const { data: userData, error: roleError } = await supabase
         .from('users')
         .select(`
@@ -113,18 +148,14 @@ export async function middleware(request: NextRequest) {
       if (roleError || !userData) {
         if (roleError) {
           console.error(`❌ [Middleware] Erro ao verificar permissões de ${user.id}:`, roleError.message)
-        } else {
-          console.warn(`⚠️ [Middleware] Usuário ${user.id} não possui perfil sincronizado no banco (public.users). Redirecionando...`)
         }
         return redirectWithCookies(request, response, '/login?error=auth_error')
       }
 
-      // Verifica status
       if (userData.status !== 'active') {
         return redirectWithCookies(request, response, '/login?error=account_inactive')
       }
 
-      // Verifica role
       const roleData = userData.role as { name: string } | { name: string }[] | null
       const roleName = Array.isArray(roleData)
         ? (roleData.length > 0 ? roleData[0].name : null)
@@ -133,7 +164,6 @@ export async function middleware(request: NextRequest) {
       const allowedRoles = ROUTE_PERMISSIONS[protectedRoute]
 
       if (!roleName || !allowedRoles.includes(roleName)) {
-        console.warn(`[Middleware] Acesso ${roleName ? 'bloqueado' : 'negado (role null)'}: usuário ${user.id} role='${roleName}' path='${path}'`)
         return redirectWithCookies(request, response, '/dashboard?error=access_denied')
       }
     }
