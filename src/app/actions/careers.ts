@@ -75,29 +75,16 @@ export async function submitApplication(formData: unknown) {
 
         const { job_id, full_name, email, phone, linkedin_url, summary } = parsed.data
 
-        // Camada 2: Buscar org_id da vaga no servidor (NUNCA do cliente)
+        // Camada 2: Server client — RLS anon filtra vagas abertas automaticamente
         const supabase = createServerSupabaseClient()
 
-        const { data: job, error: jobError } = await supabase
-            .from('jobs')
-            .select('id, org_id')
-            .eq('id', job_id)
-            .single()
-
-        // RLS já filtra vagas fechadas — se não achou, não existe ou não está aberta
-        if (jobError || !job) {
-            return {
-                success: false,
-                message: 'Esta vaga não está mais disponível.'
-            }
-        }
-
-        // Camada 3: INSERT opaco — RLS WITH CHECK valida consistência
+        // Camada 3: INSERT opaco — Trigger preenche org_id, RLS WITH CHECK valida
+        // O front-end NUNCA envia org_id — o banco preenche sozinho
         const { error: insertError } = await supabase
             .from('candidates')
             .insert({
                 job_id,
-                org_id: job.org_id, // Extraído do servidor, NUNCA do cliente
+                // org_id: preenchido pelo Trigger trg_set_candidate_org
                 full_name,
                 email,
                 phone: phone || null,
