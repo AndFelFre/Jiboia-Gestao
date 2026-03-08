@@ -21,7 +21,9 @@ interface ActionResult<T = unknown> {
 export async function getUnits(orgId?: string): Promise<ActionResult> {
   try {
     const auth = await requireAuth()
-    const supabase = createServerSupabaseClient()
+    const supabase = auth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
 
     let query = supabase
       .from('units')
