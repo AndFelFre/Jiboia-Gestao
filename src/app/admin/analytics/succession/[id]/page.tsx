@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 interface SuccessionData {
-    readinessScore: number
+    aiSuggestedReadinessScore: number
     strengths: string[]
     developmentAreas: string[]
     recommendedNextSteps: string[]
@@ -90,10 +90,10 @@ export default function SuccessionProfilePage({ params }: { params: { id: string
                         <div className="flex items-center gap-4">
                             <div className="text-right">
                                 <span className="text-4xl font-black bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-                                    {data.readinessScore}%
+                                    {data.aiSuggestedReadinessScore}%
                                 </span>
                                 <p className="font-medium text-sm text-foreground mt-1">
-                                    {data.readinessScore > 80 ? 'Fortemente Promovível' : data.readinessScore > 60 ? 'Em Desenvolvimento' : 'Atenção Requerida'}
+                                    {data.aiSuggestedReadinessScore > 80 ? 'Fortemente Promovível' : data.aiSuggestedReadinessScore > 60 ? 'Em Desenvolvimento' : 'Atenção Requerida'}
                                 </p>
                             </div>
                         </div>

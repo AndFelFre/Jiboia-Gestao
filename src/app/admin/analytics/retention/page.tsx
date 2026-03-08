@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 export const dynamic = 'force-dynamic'
 
 export default async function RetentionRiskPage() {
-    const res = await getRetentionRiskData({})
+    const res = await getRetentionRiskData()
 
     return (
         <div className="min-h-screen bg-[#FDFDFD] p-8">
