@@ -174,7 +174,7 @@ export default async function DashboardPage() {
             <p className="text-[10px] opacity-60 mt-1">Produtividade Diária</p>
           </Link>
 
-          <Link href="/dashboard/meu-perfil" className="bg-surface-bento border border-border-bento-subtle p-6 rounded-3xl hover:bg-primary hover:text-white transition-all group">
+          <Link href="/dashboard/profile" className="bg-surface-bento border border-border-bento-subtle p-6 rounded-3xl hover:bg-primary hover:text-white transition-all group">
             <Award className="w-6 h-6 mb-3 text-primary group-hover:text-white" />
             <h5 className="font-bold text-sm">Configuração</h5>
             <p className="text-[10px] opacity-60 mt-1">Minha Conta</p>

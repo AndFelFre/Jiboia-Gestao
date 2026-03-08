@@ -106,7 +106,7 @@ export const awardBadge = createSafeAction(awardBadgeSchema, async (data, auth) 
         comment: data.comment
     }).catch(console.error)
 
-    revalidatePath('/dashboard/meu-perfil')
+    revalidatePath('/dashboard/profile')
     revalidatePath(`/admin/users/${data.userId}`)
     return { success: true }
 }, 'users.manage')

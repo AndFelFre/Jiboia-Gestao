@@ -65,7 +65,7 @@ export function KanbanCard({ candidate }: KanbanCardProps) {
                         {initials}
                     </div>
                     <div className="overflow-hidden">
-                        <Link href={`/recruitment/candidates/${candidate.id}`} className="font-medium text-sm text-foreground hover:text-primary truncate block" onPointerDown={(e) => e.stopPropagation()}>
+                        <Link href={`/admin/recruitment/candidates/${candidate.id}`} className="font-medium text-sm text-foreground hover:text-primary truncate block" onPointerDown={(e) => e.stopPropagation()}>
                             {candidate.full_name}
                         </Link>
                         {candidate.jobs && (

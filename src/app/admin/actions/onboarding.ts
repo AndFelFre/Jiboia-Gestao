@@ -202,7 +202,7 @@ export async function toggleOnboardingItem(progressId: string, status: 'complete
             }
         }
 
-        revalidatePath('/dashboard/meu-perfil')
+        revalidatePath('/dashboard/profile')
         return { success: true }
     } catch (error: unknown) {
         const err = error as Error;

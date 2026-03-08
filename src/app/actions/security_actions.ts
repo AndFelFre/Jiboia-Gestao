@@ -63,7 +63,7 @@ export async function verifyAndEnableMFA(code: string, factorId: string) {
             return { success: false, error: 'Código inválido ou expirado.' }
         }
 
-        revalidatePath('/dashboard/meu-perfil')
+        revalidatePath('/dashboard/profile')
         return { success: true }
     } catch (err: any) {
         return { success: false, error: err.message || 'Erro inesperado.' }
@@ -83,7 +83,7 @@ export async function unenrollMFA(factorId: string) {
             return { success: false, error: 'Erro ao remover MFA.' }
         }
 
-        revalidatePath('/dashboard/meu-perfil')
+        revalidatePath('/dashboard/profile')
         return { success: true }
     } catch (err: any) {
         return { success: false, error: err.message || 'Erro inesperado.' }
