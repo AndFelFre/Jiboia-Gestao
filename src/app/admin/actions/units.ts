@@ -5,6 +5,18 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { unitSchema, type UnitInput } from '@/validations/schemas'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { sanitizeError } from '@/lib/utils'
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
+interface ActionResult<T = unknown> {
+  success: boolean
+  data?: T
+  error?: string
+}
 
 export async function getUnits(orgId?: string): Promise<ActionResult> {
   try {
