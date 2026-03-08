@@ -14,26 +14,14 @@ export async function getPerformanceOrganizationAnalytics(
     unitId?: string
 ): Promise<ActionResult<PerformanceOrgAnalytics[]>> {
     try {
-        await requirePermission('performance.evaluate')
+        const auth = await requirePermission('performance.evaluate')
         const supabase = createServerSupabaseClient()
-
-        // 1. Obter a organização do usuário logado (Fonte de Verdade)
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) throw new Error('Usuário não autenticado')
-
-        const { data: profile } = await supabase
-            .from('users')
-            .select('org_id')
-            .eq('id', user.id)
-            .single()
-
-        if (!profile?.org_id) throw new Error('Organização não encontrada para o usuário')
 
         // 2. Consulta à Materialized View
         let query = supabase
             .from('mv_performance_org')
             .select('*')
-            .eq('org_id', profile.org_id) // FILTRAGEM OBRIGATÓRIA (Substitui RLS)
+            .eq('org_id', auth.orgId) // FILTRAGEM OBRIGATÓRIA (Substitui RLS)
 
         if (unitId) {
             query = query.eq('unit_id', unitId)

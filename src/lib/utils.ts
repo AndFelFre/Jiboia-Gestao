@@ -18,5 +18,5 @@ export function sanitizeError(error: unknown): string {
 
   console.error('[Action Error]:', error)
 
-  return 'Erro ao processar solicitação. Tente novamente mais tarde.'
+  return `Erro: ${message}`
 }
