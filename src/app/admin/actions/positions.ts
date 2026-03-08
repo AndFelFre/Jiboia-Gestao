@@ -3,9 +3,9 @@ import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { positionSchema, type PositionInput } from '@/validations/schemas'
-import { revalidatePath } from 'next/cache'
+import { revalidateTag } from 'next/cache'
+import { setAuditContext } from '@/lib/supabase/audit'
 import type { Position } from '@/types'
-import { logAudit } from '@/lib/supabase/audit'
 
 interface ActionResult<T = unknown> {
   success: boolean
@@ -22,7 +22,7 @@ function sanitizeError(error: unknown): string {
   if (error instanceof Error) return error.message
   if (typeof error === 'object' && error !== null) {
     const e = error as { message?: string; code?: string }
-    if (e.code === '23505') return 'Este cargo já está cadastrado.'
+    if (e.code === '23505') return 'Este cargo já está cadastrado nesta organização.'
     if (e.code === '23503') return 'Não é possível remover este cargo pois ele possui registros vinculados.'
     if (e.message) return e.message
   }
@@ -34,10 +34,10 @@ export async function getPositions(orgId?: string): Promise<ActionResult<Positio
     const auth = await requireAuth()
     const supabase = createServerSupabaseClient()
 
-    // Query simplificada para evitar falhas críticas em joins se RLS for restritivo
     let query = supabase
       .from('positions')
       .select('*, organizations(name), levels(name, sequence)')
+      .is('deleted_at', null)
       .order('title')
 
     if (auth.role !== 'admin') {
@@ -55,20 +55,6 @@ export async function getPositions(orgId?: string): Promise<ActionResult<Positio
         hint: error.hint,
         code: error.code
       })
-
-      // Tentativa de fallback sem joins se o erro for de permissão/RLS no join
-      if (error.code === '42501' || error.message?.includes('permission')) {
-        console.log('[Action: getPositions] Tentando fallback sem joins...')
-        const fallback = await supabase
-          .from('positions')
-          .select('*')
-          .order('title')
-
-        if (!fallback.error) {
-          return { success: true, data: fallback.data as Position[] }
-        }
-      }
-
       return { success: false, error: sanitizeError(error) }
     }
 
@@ -83,13 +69,16 @@ export async function createPosition(formData: PositionInput & { org_id: string 
   try {
     const auth = await requirePermission('org.manage')
 
+    // Segurança multi-tenant: usuário não-admin só cria na própria org
     if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
       throw new Error('FORBIDDEN')
     }
 
     const { org_id, ...positionInput } = formData
     const validated = positionSchema.parse(positionInput)
-    const supabase = createAdminSupabaseClient()
+
+    // Usa cliente autenticado (RLS valida org_id no banco)
+    const supabase = createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('positions')
@@ -106,21 +95,13 @@ export async function createPosition(formData: PositionInput & { org_id: string 
     if (error) {
       console.error('[Action: createPosition] Erro do Supabase:', {
         message: error.message,
-        details: error.details,
-        hint: error.hint,
         code: error.code
       })
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'positions',
-      recordId: data.id,
-      action: 'INSERT',
-      newValues: data,
-    })
-
-    revalidatePath('/admin/positions')
+    // Auditoria via Trigger Master (081)
+    revalidateTag('admin-positions')
     return { success: true, data: data as Position }
   } catch (error: unknown) {
     console.error('Erro em createPosition:', getErrorMessage(error))
@@ -133,13 +114,15 @@ export async function updatePosition(id: string, formData: PositionInput & { org
     const auth = await requirePermission('org.manage')
     const { org_id, ...positionInput } = formData
     const validated = positionSchema.parse(positionInput)
-    const supabase = createAdminSupabaseClient()
 
-    // Valor antigo
-    const { data: oldData } = await supabase.from('positions').select('*').eq('id', id).single()
+    // Usa cliente autenticado (RLS protege)
+    const supabase = createServerSupabaseClient()
 
-    if (auth.role !== 'admin') {
-      if (oldData?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
+    // Verificar posse multi-tenant
+    const { data: oldData } = await supabase.from('positions').select('org_id').eq('id', id).single()
+    if (!oldData) return { success: false, error: 'Cargo não encontrado.' }
+    if (auth.role !== 'admin' && oldData.org_id !== auth.orgId) {
+      throw new Error('FORBIDDEN')
     }
 
     const { data, error } = await supabase
@@ -158,22 +141,13 @@ export async function updatePosition(id: string, formData: PositionInput & { org
     if (error) {
       console.error('[Action: updatePosition] Erro do Supabase:', {
         message: error.message,
-        details: error.details,
-        hint: error.hint,
         code: error.code
       })
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'positions',
-      recordId: id,
-      action: 'UPDATE',
-      oldValues: oldData,
-      newValues: data,
-    })
-
-    revalidatePath('/admin/positions', 'page')
+    // Auditoria via Trigger Master (081)
+    revalidateTag('admin-positions')
     return { success: true, data: data as Position }
   } catch (error: unknown) {
     console.error('Erro em updatePosition:', getErrorMessage(error))
@@ -183,37 +157,51 @@ export async function updatePosition(id: string, formData: PositionInput & { org
 
 export async function deletePosition(id: string): Promise<ActionResult> {
   try {
-    const auth = await requirePermission('org.manage')
+    await requirePermission('org.manage')
     const supabase = createAdminSupabaseClient()
 
-    // Valor antigo
-    const { data: oldData } = await supabase.from('positions').select('*').eq('id', id).single()
+    await setAuditContext('Arquivamento de cargo')
 
-    if (auth.role !== 'admin') {
-      if (oldData?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
-    }
-
-    const { error } = await supabase
-      .from('positions')
-      .delete()
-      .eq('id', id)
+    // Soft Delete via RPC (SECURITY DEFINER - precisa do admin client)
+    const { error } = await supabase.rpc('soft_delete_record', {
+      target_table: 'positions',
+      target_id: id
+    })
 
     if (error) {
       console.error('[Action: deletePosition] Erro:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'positions',
-      recordId: id,
-      action: 'DELETE',
-      oldValues: oldData,
-    })
-
-    revalidatePath('/admin/positions', 'page')
+    revalidateTag('admin-positions')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em deletePosition:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
+export async function restorePosition(id: string): Promise<ActionResult> {
+  try {
+    await requirePermission('org.manage')
+    const supabase = createAdminSupabaseClient()
+
+    await setAuditContext('Restauração de cargo arquivado')
+
+    const { error } = await supabase.rpc('restore_record', {
+      target_table: 'positions',
+      target_id: id
+    })
+
+    if (error) {
+      console.error('[Action: restorePosition] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
+    }
+
+    revalidateTag('admin-positions')
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('Erro em restorePosition:', getErrorMessage(error))
     return { success: false, error: sanitizeError(error) }
   }
 }
