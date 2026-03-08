@@ -170,6 +170,10 @@ export async function deletePosition(id: string): Promise<ActionResult> {
 
     if (error) {
       console.error('[Action: deletePosition] Erro:', error.message)
+      // Captura erro do Trigger check_position_archival (proteção contra arquivamento)
+      if (error.message?.includes('usuários ativos vinculados')) {
+        return { success: false, error: error.message }
+      }
       return { success: false, error: sanitizeError(error) }
     }
 

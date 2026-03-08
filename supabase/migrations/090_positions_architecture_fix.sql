@@ -49,7 +49,11 @@ USING (
     AND public.get_user_role(auth.uid()) = 'admin'
 );
 
--- 4. Índice Parcial Único para evitar efeito fantasma no Soft Delete
+-- 4. Anti-Fantasma: Dropar constraint antiga + Criar índice parcial
+-- Sem isso, Soft Delete colide com unique constraints tradicionais
+ALTER TABLE public.positions DROP CONSTRAINT IF EXISTS positions_org_id_title_key;
+ALTER TABLE public.positions DROP CONSTRAINT IF EXISTS unique_position_title;
+DROP INDEX IF EXISTS idx_unique_position_title;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_position_title_org_active 
 ON public.positions (org_id, title) WHERE deleted_at IS NULL;
 
