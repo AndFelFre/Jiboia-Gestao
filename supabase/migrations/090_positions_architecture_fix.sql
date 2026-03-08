@@ -23,6 +23,9 @@ END $$;
 -- (admin vê apenas da SUA organização, não de todas)
 DROP POLICY IF EXISTS positions_admin_all ON public.positions;
 DROP POLICY IF EXISTS positions_isolation ON public.positions;
+DROP POLICY IF EXISTS positions_org_read ON public.positions;
+DROP POLICY IF EXISTS positions_org_manage ON public.positions;
+DROP POLICY IF EXISTS positions_org_archived ON public.positions;
 
 -- Política principal: todos os autenticados veem os cargos da sua org (ativos)
 CREATE POLICY positions_org_read ON public.positions

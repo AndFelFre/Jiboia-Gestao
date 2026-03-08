@@ -77,8 +77,11 @@ export async function createPosition(formData: PositionInput & { org_id: string 
     const { org_id, ...positionInput } = formData
     const validated = positionSchema.parse(positionInput)
 
-    // Usa cliente autenticado (RLS valida org_id no banco)
-    const supabase = createServerSupabaseClient()
+    // Superadmin opera cross-org (precisa admin client)
+    // User normal: RLS valida org_id no banco
+    const supabase = auth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
 
     const { data, error } = await supabase
       .from('positions')
@@ -115,8 +118,10 @@ export async function updatePosition(id: string, formData: PositionInput & { org
     const { org_id, ...positionInput } = formData
     const validated = positionSchema.parse(positionInput)
 
-    // Usa cliente autenticado (RLS protege)
-    const supabase = createServerSupabaseClient()
+    // Superadmin opera cross-org (precisa admin client)
+    const supabase = auth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
 
     // Verificar posse multi-tenant
     const { data: oldData } = await supabase.from('positions').select('org_id').eq('id', id).single()
