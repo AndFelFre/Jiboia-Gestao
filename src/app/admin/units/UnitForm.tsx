@@ -26,6 +26,8 @@ interface UnitFormProps {
     initialData?: Unit
 }
 
+import { toast } from '@/components/ui/feedback'
+
 export default function UnitForm({ organizations, units, initialData }: UnitFormProps) {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -51,6 +53,7 @@ export default function UnitForm({ organizations, units, initialData }: UnitForm
 
     const onSubmit = async (data: UnitInput) => {
         if (!selectedOrg) {
+            toast.error('Selecione uma organização')
             setError('Selecione uma organização')
             return
         }
@@ -58,15 +61,23 @@ export default function UnitForm({ organizations, units, initialData }: UnitForm
         setLoading(true)
         setError('')
 
-        const result = initialData
-            ? await updateUnit(initialData.id, { ...data, org_id: selectedOrg })
-            : await createUnit({ ...data, org_id: selectedOrg })
+        try {
+            const result = initialData
+                ? await updateUnit(initialData.id, { ...data, org_id: selectedOrg })
+                : await createUnit({ ...data, org_id: selectedOrg })
 
-        if (result.success) {
-            router.push('/admin/units')
-            router.refresh()
-        } else {
-            setError(result.error || 'Erro ao salvar unidade')
+            if (result.success) {
+                toast.success(initialData ? 'Unidade atualizada com sucesso!' : 'Unidade criada com sucesso!')
+                router.refresh()
+                router.push('/admin/units')
+            } else {
+                toast.error(result.error || 'Erro ao salvar unidade')
+                setError(result.error || 'Erro ao salvar unidade')
+                setLoading(false)
+            }
+        } catch (err) {
+            toast.error('Erro inesperado ao salvar unidade')
+            setError('Erro inesperado ao salvar unidade')
             setLoading(false)
         }
     }

@@ -34,6 +34,8 @@ interface PositionFormProps {
     initialData?: Position
 }
 
+import { toast } from '@/components/ui/feedback'
+
 export default function PositionForm({ organizations, levels, initialData }: PositionFormProps) {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -65,6 +67,7 @@ export default function PositionForm({ organizations, levels, initialData }: Pos
 
     const onSubmit = async (data: PositionInput) => {
         if (!selectedOrg) {
+            toast.error('Selecione uma organização')
             setError('Selecione uma organização')
             return
         }
@@ -72,17 +75,23 @@ export default function PositionForm({ organizations, levels, initialData }: Pos
         setLoading(true)
         setError('')
 
-        const result = initialData
-            ? await updatePosition(initialData.id, { ...data, org_id: selectedOrg })
-            : await createPosition({ ...data, org_id: selectedOrg })
+        try {
+            const result = initialData
+                ? await updatePosition(initialData.id, { ...data, org_id: selectedOrg })
+                : await createPosition({ ...data, org_id: selectedOrg })
 
-        if (result.success) {
-            console.log('[PositionForm] Sucesso ao salvar cargo. Revalidando e redirecionando...')
-            router.refresh()
-            router.push('/admin/positions')
-        } else {
-            console.error('[PositionForm] Erro ao salvar:', result.error)
-            setError(result.error || 'Erro ao salvar cargo')
+            if (result.success) {
+                toast.success(initialData ? 'Cargo atualizado com sucesso!' : 'Cargo criado com sucesso!')
+                router.refresh()
+                router.push('/admin/positions')
+            } else {
+                toast.error(result.error || 'Erro ao salvar cargo')
+                setError(result.error || 'Erro ao salvar cargo')
+                setLoading(false)
+            }
+        } catch (err) {
+            toast.error('Erro inesperado ao salvar cargo')
+            setError('Erro inesperado ao salvar cargo')
             setLoading(false)
         }
     }

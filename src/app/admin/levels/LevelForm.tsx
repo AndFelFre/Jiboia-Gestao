@@ -27,6 +27,8 @@ interface LevelFormProps {
     initialData?: Level
 }
 
+import { toast } from '@/components/ui/feedback'
+
 export default function LevelForm({ organizations, initialData }: LevelFormProps) {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -52,6 +54,7 @@ export default function LevelForm({ organizations, initialData }: LevelFormProps
 
     const onSubmit = async (data: LevelInput) => {
         if (!selectedOrg) {
+            toast.error('Selecione uma organização')
             setError('Selecione uma organização')
             return
         }
@@ -59,15 +62,23 @@ export default function LevelForm({ organizations, initialData }: LevelFormProps
         setLoading(true)
         setError('')
 
-        const result = initialData
-            ? await updateLevel(initialData.id, { ...data, org_id: selectedOrg })
-            : await createLevel({ ...data, org_id: selectedOrg })
+        try {
+            const result = initialData
+                ? await updateLevel(initialData.id, { ...data, org_id: selectedOrg })
+                : await createLevel({ ...data, org_id: selectedOrg })
 
-        if (result.success) {
-            router.push('/admin/levels')
-            router.refresh()
-        } else {
-            setError(result.error || 'Erro ao salvar nível')
+            if (result.success) {
+                toast.success(initialData ? 'Nível atualizado com sucesso!' : 'Nível criado com sucesso!')
+                router.refresh()
+                router.push('/admin/levels')
+            } else {
+                toast.error(result.error || 'Erro ao salvar nível')
+                setError(result.error || 'Erro ao salvar nível')
+                setLoading(false)
+            }
+        } catch (err) {
+            toast.error('Erro inesperado ao salvar nível')
+            setError('Erro inesperado ao salvar nível')
             setLoading(false)
         }
     }

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { userSchema, type UserInput } from '@/validations/schemas'
 import { inviteUser } from '../actions/users'
 import { useRouter } from 'next/navigation'
+import { toast } from '@/components/ui/feedback'
 import Link from 'next/link'
 
 interface Organization {
@@ -39,7 +40,6 @@ interface UserFormProps {
 
 export default function UserForm({ organizations, units, roles, positions }: UserFormProps) {
     const [error, setError] = useState('')
-    const [success, setSuccess] = useState('')
     const [loading, setLoading] = useState(false)
     const [selectedOrg, setSelectedOrg] = useState('')
     const router = useRouter()
@@ -63,6 +63,7 @@ export default function UserForm({ organizations, units, roles, positions }: Use
 
     const onSubmit = async (data: UserInput) => {
         if (!selectedOrg) {
+            toast.error('Selecione uma organização')
             setError('Selecione uma organização')
             return
         }
@@ -70,20 +71,26 @@ export default function UserForm({ organizations, units, roles, positions }: Use
         setLoading(true)
         setError('')
 
-        // Agora o inviteUser espera UserInput & { org_id: string }
-        const result = await inviteUser({
-            ...data,
-            org_id: selectedOrg,
-        })
+        try {
+            const result = await inviteUser({
+                ...data,
+                org_id: selectedOrg,
+            })
 
-        if (result.success) {
-            setSuccess('Usuário convidado com sucesso!')
-            setTimeout(() => {
-                router.push('/admin/users')
-                router.refresh()
-            }, 1500)
-        } else {
-            setError(result.error || 'Erro ao convidar usuário')
+            if (result.success) {
+                toast.success('Usuário convidado com sucesso!')
+                setTimeout(() => {
+                    router.push('/admin/users')
+                    router.refresh()
+                }, 1500)
+            } else {
+                toast.error(result.error || 'Erro ao convidar usuário')
+                setError(result.error || 'Erro ao convidar usuário')
+                setLoading(false)
+            }
+        } catch (err) {
+            toast.error('Erro inesperado ao convidar usuário')
+            setError('Erro inesperado ao convidar usuário')
             setLoading(false)
         }
     }
@@ -93,15 +100,6 @@ export default function UserForm({ organizations, units, roles, positions }: Use
             {error && (
                 <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded animate-in fade-in duration-300">
                     <p className="text-destructive font-medium">{error}</p>
-                </div>
-            )}
-
-            {success && (
-                <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded animate-in zoom-in duration-300">
-                    <p className="text-emerald-600 font-bold flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        {success}
-                    </p>
                 </div>
             )}
 
