@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getJobs } from '../../actions/recruitment-jobs'
+import { getJobs } from '@/services/recruitment/jobs'
 import { getOrganizations } from '@/app/admin/actions/organizations'
 import { getUnits } from '@/app/admin/actions/units'
 import { getPositions } from '@/app/admin/actions/positions'

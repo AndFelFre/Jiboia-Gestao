@@ -10,7 +10,7 @@ import {
     ChevronLeft, Loader2, Target, Zap, Trophy, Brain,
     MessageCircle, Heart, Lightbulb, Shield, FastForward, Sparkles
 } from 'lucide-react'
-import { createInterview } from '../../../actions/recruitment-interviews'
+import { evaluateCandidate } from '@/services/recruitment/evaluations'
 
 interface InterviewFormProps {
     candidate: { id: string, full_name: string }
@@ -53,7 +53,7 @@ export default function InterviewFormSTAR({ candidate }: InterviewFormProps) {
             payload[p.key] = parseInt(formData.get(p.key) as string)
         })
 
-        const result = await createInterview(payload)
+        const result = await evaluateCandidate(payload)
 
         if (result.success) {
             router.push('/admin/recruitment/kanban')

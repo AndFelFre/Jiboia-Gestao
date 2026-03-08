@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Candidate } from '@/app/recruitment/actions'
+import { Candidate } from '@/services/recruitment/candidates'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { KanbanCard } from './KanbanCard'

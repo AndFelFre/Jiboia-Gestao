@@ -7,21 +7,20 @@ import type { ActionResult, PerformanceOrgAnalytics } from '@/types'
 
 /**
  * Busca analytics de performance organizacional agregados.
- * SEGURANÇA: Materialized Views não suportam RLS no Postgres, 
- * portanto a filtragem por org_id é obrigatória nesta Action.
+ * SEGURANÇA: Utilizamos a View Segura 'vw_performance_org_safe' que 
+ * respeita o RLS via security_invoker, garantindo isolamento total de tenants.
  */
 export async function getPerformanceOrganizationAnalytics(
     unitId?: string
 ): Promise<ActionResult<PerformanceOrgAnalytics[]>> {
     try {
-        const auth = await requirePermission('performance.evaluate')
+        await requirePermission('performance.evaluate')
         const supabase = createServerSupabaseClient()
 
-        // 2. Consulta à Materialized View
+        // 2. Consulta à View Segura (Multi-tenancy garantido pelo banco)
         let query = supabase
-            .from('mv_performance_org')
+            .from('vw_performance_org_safe')
             .select('*')
-            .eq('org_id', auth.orgId) // FILTRAGEM OBRIGATÓRIA (Substitui RLS)
 
         if (unitId) {
             query = query.eq('unit_id', unitId)

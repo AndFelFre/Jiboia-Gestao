@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { getCandidates } from '../../actions/recruitment-candidates'
-import { getJobs } from '../../actions/recruitment-jobs'
+import { getCandidates } from '@/services/recruitment/candidates'
+import { getJobs } from '@/services/recruitment/jobs'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 import KanbanView from './KanbanView'

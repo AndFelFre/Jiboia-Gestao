@@ -10,6 +10,12 @@ export const CalculatorPayloadSchema = z.object({
 
 export type CalculatorPayload = z.infer<typeof CalculatorPayloadSchema>;
 
+export interface WeightedKpiInput {
+    id: string;
+    weight: number;
+    achievement: number;
+}
+
 /**
  * Motor Matemático Principal dos KPIs
  * Calcula o atingimento mantendo os limites e respeitando KPIs invertidos (onde MENOR é MELHOR, ex: Churn)
@@ -35,6 +41,30 @@ export function calculateKpiAchievement(params: CalculatorPayload) {
     const finalPercentage = Math.min(percentage, capPercentage);
 
     return { achievement: finalPercentage, rawRatio: ratio };
+}
+
+/**
+ * Calcula a média ponderada de uma lista de KPIs de forma segura.
+ * Utiliza Number.EPSILON para mitigar imprecisões de ponto flutuante do V8.
+ */
+export function calculateWeightedAverage(kpis: WeightedKpiInput[]): number {
+    if (!kpis || kpis.length === 0) return 0;
+
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    kpis.forEach((kpi) => {
+        const weight = Math.max(0, kpi.weight);
+        totalScore += (kpi.achievement * weight);
+        totalWeight += weight;
+    });
+
+    if (totalWeight === 0) return 0;
+
+    const result = totalScore / totalWeight;
+
+    // Arredondamento seguro para 2 casas decimais (Padrão Corporativo)
+    return Math.round((result + Number.EPSILON) * 100) / 100;
 }
 
 /**

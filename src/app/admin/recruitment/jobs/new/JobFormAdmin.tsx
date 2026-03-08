@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createJob } from '../../../actions/recruitment-jobs'
+import { createJob } from '@/services/recruitment/jobs'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'

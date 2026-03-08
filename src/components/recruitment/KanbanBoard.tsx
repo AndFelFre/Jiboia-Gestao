@@ -13,11 +13,8 @@ import {
     DragEndEvent,
     DragOverlay,
 } from '@dnd-kit/core'
-import {
-    arrayMove,
-    sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable'
-import { Candidate, updateCandidateStage } from '@/app/recruitment/actions'
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { Candidate, transitionCandidate } from '@/services/recruitment/candidates'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 
@@ -113,7 +110,7 @@ export function KanbanBoard({ initialCandidates }: KanbanBoardProps) {
         if (candidate && overStage && candidate.stage === overStage) {
             setIsSaving(true)
             try {
-                const res = await updateCandidateStage(candidate.id, overStage as string)
+                const res = await transitionCandidate(candidate.id, overStage as string)
                 if (!res.success) {
                     // Tratar erro / rollback visual
                     console.error('Falha ao salvar no BD:', res.error)

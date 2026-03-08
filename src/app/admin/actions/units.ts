@@ -4,54 +4,22 @@ import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { unitSchema, type UnitInput } from '@/validations/schemas'
-import { revalidatePath } from 'next/cache'
-// Unit type used via inference
-
-interface ActionResult<T = unknown> {
-  success: boolean
-  data?: T
-  error?: string
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return String(error)
-}
-
-function sanitizeError(error: unknown): string {
-  const message = getErrorMessage(error)
-  const code = (error as any)?.code
-
-  if (code) {
-    if (code === '23505') return 'Já existe uma unidade com este nome nesta organização.'
-    if (code === '23503') return 'Não é possível remover: esta unidade possui usuários ou subunidades vinculadas.'
-    return `Erro de Banco (${code}): ${message}`
-  }
-
-  if (message.includes('unrecognized_keys')) return 'Erro de Validação: campos extras detectados.'
-  if (message === 'UNAUTHORIZED') return 'Sessão expirada. Faça login novamente.'
-  if (message === 'FORBIDDEN') return 'Você não tem permissão para realizar esta ação.'
-
-  return `Erro: ${message}`
-}
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 export async function getUnits(orgId?: string): Promise<ActionResult> {
   try {
     const auth = await requireAuth()
-
-    // Admin/Leader podem ver unidades (via RLS ou middleware, mas aqui reforçamos)
     const supabase = createServerSupabaseClient()
 
     let query = supabase
       .from('units')
       .select('id, org_id, name, parent_id, created_at, updated_at, organizations(name)')
+      .is('deleted_at', null) // Filtragem de ativos
       .order('name')
 
-    // Isolamento: se não for admin, forçamos a org do usuário
     if (auth.role !== 'admin') {
       query = query.eq('org_id', auth.orgId)
     } else if (orgId) {
-      // Admin pode filtrar por uma org específica
       query = query.eq('org_id', orgId)
     }
 
@@ -87,16 +55,11 @@ export async function createUnit(formData: UnitInput & { org_id: string }): Prom
       .single()
 
     if (error) {
-      console.error('[Action: createUnit] Erro do Supabase:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      })
+      console.error('[Action: createUnit] Erro do Supabase:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    revalidatePath('/admin/units')
+    revalidateTag('admin-units')
     return { success: true, data }
   } catch (error: unknown) {
     console.error('Erro em createUnit:', getErrorMessage(error))
@@ -107,12 +70,10 @@ export async function createUnit(formData: UnitInput & { org_id: string }): Prom
 export async function updateUnit(id: string, formData: UnitInput & { org_id: string }): Promise<ActionResult> {
   try {
     const auth = await requirePermission('unit.manage')
-
     const { org_id, ...unitInput } = formData
     const validated = unitSchema.parse(unitInput)
     const supabase = createAdminSupabaseClient()
 
-    // Verifica se a unidade pertence Ã  org do usuário
     if (auth.role !== 'admin') {
       const { data: unit } = await supabase
         .from('units')
@@ -137,11 +98,11 @@ export async function updateUnit(id: string, formData: UnitInput & { org_id: str
       .single()
 
     if (error) {
-      console.error('[Action: updateUnit] Erro do Supabase:', error.message, error.details, error.hint)
+      console.error('[Action: updateUnit] Erro do Supabase:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    revalidatePath('/admin/units')
+    revalidateTag('admin-units')
     return { success: true, data }
   } catch (error: unknown) {
     console.error('Erro em updateUnit:', getErrorMessage(error))
@@ -154,7 +115,6 @@ export async function deleteUnit(id: string): Promise<ActionResult> {
     const auth = await requirePermission('unit.manage')
     const supabase = createAdminSupabaseClient()
 
-    // Verifica se a unidade pertence Ã  org do usuário
     if (auth.role !== 'admin') {
       const { data: unit } = await supabase
         .from('units')
@@ -167,20 +127,45 @@ export async function deleteUnit(id: string): Promise<ActionResult> {
       }
     }
 
-    const { error } = await supabase
-      .from('units')
-      .delete()
-      .eq('id', id)
+    // Soft Delete: Preservação Histórica
+    const { error } = await supabase.rpc('soft_delete_record', {
+      target_table: 'units',
+      target_id: id
+    })
 
     if (error) {
       console.error('[Action: deleteUnit] Erro do Supabase:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    revalidatePath('/admin/units')
+    revalidateTag('admin-units')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em deleteUnit:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
+export async function restoreUnit(id: string): Promise<ActionResult> {
+  try {
+    const auth = await requirePermission('unit.manage')
+    const supabase = createAdminSupabaseClient()
+
+    // Restore via RPC (valida se a org pai não está deletada)
+    const { error } = await supabase.rpc('restore_record', {
+      target_table: 'units',
+      target_id: id
+    })
+
+    if (error) {
+      console.error('[Action: restoreUnit] Erro do Supabase:', error.message)
+      return { success: false, error: sanitizeError(error) }
+    }
+
+    revalidateTag('admin-units')
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('Erro em restoreUnit:', getErrorMessage(error))
     return { success: false, error: sanitizeError(error) }
   }
 }

@@ -56,11 +56,12 @@ ADD COLUMN IF NOT EXISTS rite_type dho_rite_type,
 ADD COLUMN IF NOT EXISTS completed_by UUID REFERENCES public.users(id) ON DELETE SET NULL;
 
 -- 10. Regra: rito exige rite_type
+-- Nota: Usamos cast para text para evitar erro 55P04 (Enum value must be committed)
 ALTER TABLE public.pdi_items DROP CONSTRAINT IF EXISTS check_rite_type_required;
 ALTER TABLE public.pdi_items 
 ADD CONSTRAINT check_rite_type_required 
 CHECK (
-    category <> 'leadership_rite' 
+    category::text <> 'leadership_rite' 
     OR rite_type IS NOT NULL
 );
 

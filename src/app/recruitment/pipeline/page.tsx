@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getJobs, getCandidates } from '@/app/recruitment/actions'
+import { getJobs } from '@/services/recruitment/jobs'
+import { getCandidates } from '@/services/recruitment/candidates'
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard'
 import { AlertCircle } from 'lucide-react'
 

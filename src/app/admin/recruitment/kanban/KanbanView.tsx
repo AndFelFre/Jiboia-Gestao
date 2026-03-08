@@ -14,7 +14,7 @@ import {
     Loader2,
     Zap
 } from 'lucide-react'
-import { updateCandidateStage } from '../../actions/recruitment-candidates'
+import { transitionCandidate } from '@/services/recruitment/candidates'
 import { useRouter } from 'next/navigation'
 
 const STAGES = [
@@ -43,7 +43,7 @@ export default function KanbanView({ initialCandidates, jobs }: KanbanViewProps)
         const nextStage = STAGES[currentIndex + 1].id
         setMovingId(candidateId)
 
-        const result = await updateCandidateStage(candidateId, nextStage)
+        const result = await transitionCandidate(candidateId, nextStage)
 
         if (result.success) {
             router.refresh()
@@ -57,7 +57,7 @@ export default function KanbanView({ initialCandidates, jobs }: KanbanViewProps)
         if (!confirm('Deseja reprovar este candidato?')) return
 
         setMovingId(candidateId)
-        const result = await updateCandidateStage(candidateId, 'rejected')
+        const result = await transitionCandidate(candidateId, 'rejected')
 
         if (result.success) {
             router.refresh()

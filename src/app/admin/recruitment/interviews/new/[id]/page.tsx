@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getCandidateById } from '../../../../actions/recruitment-candidates'
+import { getCandidateById } from '@/services/recruitment/candidates'
 import InterviewFormSTAR from '../InterviewFormSTAR'
 
 export const dynamic = 'force-dynamic'

@@ -276,22 +276,24 @@ export async function closeEvaluationCycle(evaluationId: string): Promise<Action
                 status: 'closed',
                 closed_at: new Date().toISOString(),
                 closed_by: auth.userId,
+                final_evaluator_id: auth.userId,      -- Snapshot: Quem fechou
+                manager_at_closure_id: evalData.leader_id, --Snapshot: Líder no momento
                 performance_bucket: perfBucket,
                 nine_box_quadrant: quadrant,
                 calibrated_at: new Date().toISOString(),
                 calibrated_by: auth.userId
             })
             .eq('id', evaluationId)
-            .eq('leader_id', auth.userId)
+        .eq('leader_id', auth.userId)
 
-        if (error) throw error
+    if (error) throw error
 
-        revalidatePath(`/admin/users`)
-        return { success: true }
-    } catch (error: any) {
-        console.error('Erro em closeEvaluationCycle:', error)
-        return { success: false, error: error.message }
-    }
+    revalidatePath(`/admin/users`)
+    return { success: true }
+} catch (error: any) {
+    console.error('Erro em closeEvaluationCycle:', error)
+    return { success: false, error: error.message }
+}
 }
 
 /**

@@ -2,9 +2,19 @@
 
 import { requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { logAudit } from '@/lib/supabase/audit'
+import { revalidateTag } from 'next/cache'
+import { setAuditContext } from '@/lib/supabase/audit'
+import { z } from 'zod'
 import type { SkillGap, PDIPlan, PDIItem, ActionResult } from '@/types'
+
+// Schema Zod para validação de entrada de PDI Items
+const pdiItemSchema = z.object({
+    planId: z.string().uuid('ID do plano inválido'),
+    title: z.string().min(3, 'Título deve ter pelo menos 3 caracteres').max(200),
+    skillId: z.string().uuid().optional(),
+    category: z.string().min(1),
+    deadline: z.string().optional(),
+})
 
 /**
  * Obtém os dados de PDI do usuário logado, incluindo a análise de GAP
@@ -128,7 +138,7 @@ export async function getMyPDIData(): Promise<ActionResult<{
 }
 
 /**
- * Cria um novo item de ação no PDI
+ * Cria um novo item de ação no PDI (validado via Zod)
  */
 export async function addPDIItem(formData: {
     planId: string
@@ -141,44 +151,30 @@ export async function addPDIItem(formData: {
         const auth = await requireAuth()
         const supabase = createServerSupabaseClient()
 
-        // 1. Validar se o plano é do tipo 'development'
-        const { data: planCheck } = await supabase
-            .from('pdi_plans')
-            .select('plan_type')
-            .eq('id', formData.planId)
-            .single()
+        // 1. Validação Zod (antes de qualquer regra de negócio)
+        const validated = pdiItemSchema.parse(formData)
 
-        if (planCheck?.plan_type !== 'development') {
-            throw new Error('FORBIDDEN: Operação inválida sobre plano de ritos via PDI comum.')
-        }
-
-        // 2. Impedir categoria de rito em action genérica
-        if (formData.category === 'leadership_rite') {
-            throw new Error('FORBIDDEN: Use addLeadershipRite para registrar ritos.')
+        // 2. Impedir categoria de rito em action genérica (Bloqueio de Domínio)
+        if (validated.category === 'leadership_rite') {
+            throw new Error('SECURITY_VIOLATION: Use addLeadershipRite para registrar ritos de gestão.')
         }
 
         const { data, error } = await supabase
             .from('pdi_items')
             .insert({
-                plan_id: formData.planId,
-                title: formData.title,
-                skill_id: formData.skillId || null,
-                category: formData.category,
-                deadline: formData.deadline || null
+                plan_id: validated.planId,
+                title: validated.title,
+                skill_id: validated.skillId || null,
+                category: validated.category,
+                deadline: validated.deadline || null
             })
             .select()
             .single()
 
         if (error) throw error
 
-        await logAudit({
-            tableName: 'pdi_items',
-            recordId: data.id,
-            action: 'INSERT',
-            newValues: data
-        })
-
-        revalidatePath('/dashboard/pdi')
+        // Auditoria via Trigger Master (081) - logAudit é no-op
+        revalidateTag('pdi-items')
         return { success: true }
     } catch (error: unknown) {
         const err = error as Error

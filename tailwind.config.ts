@@ -43,6 +43,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Corporate / Bento Tokens
+        "surface-bento": "hsl(var(--surface-bento))",
+        "border-bento-subtle": "hsl(var(--border-bento-subtle))",
+        "corporate-primary": "hsl(var(--text-corporate-primary))",
       },
       borderRadius: {
         lg: "var(--radius)",

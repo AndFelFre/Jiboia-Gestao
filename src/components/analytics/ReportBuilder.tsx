@@ -86,6 +86,30 @@ export function ReportBuilder({ initialData, onSave, isSaving }: ReportBuilderPr
     const [reportName, setReportName] = useState(initialData?.name || '')
     const [widgets, setWidgets] = useState<Widget[]>(initialData?.config?.widgets || [])
     const [saveError, setSaveError] = useState('')
+    const [isAutoSaving, setIsAutoSaving] = useState(false)
+
+    // Estratégia de Debounce Agressivo (Engenharia de Performance)
+    // Evita overhead de GIN Indexes no banco durante a edição fluida
+    React.useEffect(() => {
+        if (!reportName.trim() || widgets.length === 0) return
+
+        const timer = setTimeout(async () => {
+            setIsAutoSaving(true)
+            try {
+                await onSave({
+                    name: reportName,
+                    config: { widgets }
+                })
+                setSaveError('')
+            } catch (err) {
+                setSaveError('Erro no salvamento automático')
+            } finally {
+                setIsAutoSaving(false)
+            }
+        }, 2000)
+
+        return () => clearTimeout(timer)
+    }, [widgets, reportName, onSave])
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -173,13 +197,19 @@ export function ReportBuilder({ initialData, onSave, isSaving }: ReportBuilderPr
                     </h2>
                     <div className="flex gap-4 items-center">
                         {saveError && <span className="text-sm text-destructive font-medium">{saveError}</span>}
-                        <button
-                            onClick={handleSaveProcess}
-                            disabled={isSaving}
-                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
-                        >
-                            {isSaving ? 'Salvando...' : <><Save className="w-4 h-4" /> Salvar Visão</>}
-                        </button>
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 border border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-widest">
+                            {isAutoSaving || isSaving ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                                    Sincronizando...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                    Dashboard Sincronizado
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

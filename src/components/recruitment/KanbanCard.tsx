@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Candidate } from '@/app/recruitment/actions'
+import { Candidate } from '@/services/recruitment/candidates'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { MoreVertical, Calendar } from 'lucide-react'

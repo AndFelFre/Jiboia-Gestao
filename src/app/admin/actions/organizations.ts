@@ -3,7 +3,7 @@ import { requirePermission } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { organizationSchema, type OrganizationInput } from '@/validations/schemas'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { logAudit } from '@/lib/supabase/audit'
 
 interface ActionResult<T = unknown> {
@@ -48,9 +48,11 @@ export async function getOrganizations(): Promise<ActionResult> {
     const auth = await requirePermission('org.manage')
     const supabase = createServerSupabaseClient()
 
+    // Filtragem por Soft Delete na origem
     let query = supabase
       .from('organizations')
       .select('id, name, slug, settings, created_at, updated_at')
+      .is('deleted_at', null)
       .order('name')
 
     if (auth.role !== 'admin' && auth.orgId) {
@@ -93,23 +95,12 @@ export async function createOrganization(formData: OrganizationInput): Promise<A
       .single()
 
     if (error) {
-      console.error('[Action: createOrganization] Erro do Supabase:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      })
+      console.error('[Action: createOrganization] Erro do Supabase:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'organizations',
-      recordId: data.id,
-      action: 'INSERT',
-      newValues: data,
-    })
-
-    revalidatePath('/admin/organizations')
+    // Invalidação cirúrgica por Tag
+    revalidateTag('admin-organizations')
     return { success: true, data }
   } catch (error: unknown) {
     console.error('Erro em createOrganization:', getErrorMessage(error))
@@ -123,9 +114,6 @@ export async function updateOrganization(id: string, formData: OrganizationInput
     const validated = organizationSchema.parse(formData)
     const supabase = createAdminSupabaseClient()
 
-    // Busca valor antigo para o log
-    const { data: oldData } = await supabase.from('organizations').select('*').eq('id', id).single()
-
     const domainToSave = validated.custom_domain?.trim() || null
 
     const updateData: Record<string, unknown> = {
@@ -137,10 +125,6 @@ export async function updateOrganization(id: string, formData: OrganizationInput
       updated_at: new Date().toISOString(),
     }
 
-    if (validated.settings) {
-      updateData.settings = validated.settings
-    }
-
     const { data, error } = await supabase
       .from('organizations')
       .update(updateData)
@@ -149,24 +133,11 @@ export async function updateOrganization(id: string, formData: OrganizationInput
       .single()
 
     if (error) {
-      console.error('[Action: updateOrganization] Erro do Supabase:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      })
+      console.error('[Action: updateOrganization] Erro do Supabase:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'organizations',
-      recordId: id,
-      action: 'UPDATE',
-      oldValues: oldData,
-      newValues: data,
-    })
-
-    revalidatePath('/admin/organizations')
+    revalidateTag('admin-organizations')
     return { success: true, data }
   } catch (error: unknown) {
     console.error('Erro em updateOrganization:', getErrorMessage(error))
@@ -179,26 +150,18 @@ export async function deleteOrganization(id: string): Promise<ActionResult> {
     await requirePermission('org.manage')
     const supabase = createAdminSupabaseClient()
 
-    const { data: oldData } = await supabase.from('organizations').select('*').eq('id', id).single()
-
-    const { error } = await supabase
-      .from('organizations')
-      .delete()
-      .eq('id', id)
+    // Soft Delete: Preservação Histórica e Integridade de Analytics
+    const { error } = await supabase.rpc('soft_delete_record', {
+      target_table: 'organizations',
+      target_id: id
+    })
 
     if (error) {
       console.error('[Action: deleteOrganization] Erro:', error.message)
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'organizations',
-      recordId: id,
-      action: 'DELETE',
-      oldValues: oldData,
-    })
-
-    revalidatePath('/admin/organizations')
+    revalidateTag('admin-organizations')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em deleteOrganization:', getErrorMessage(error))

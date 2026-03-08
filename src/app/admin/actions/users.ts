@@ -2,9 +2,9 @@
 import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import type { User } from '@/types'
-import { logAudit } from '@/lib/supabase/audit'
+import { logAudit, setAuditContext } from '@/lib/supabase/audit'
 import { sendWelcomeEmail } from './notifications'
 
 interface ActionResult<T = unknown> {
@@ -24,6 +24,7 @@ function sanitizeError(error: unknown): string {
 
   if (code) {
     if (code === '23505') return 'Este usuário (e-mail) já está cadastrado.'
+    if (code === '23503') return 'Não é possível remover este usuário pois ele possui registros vinculados (ex: PDI ou Avaliações).'
     return `Erro de Banco (${code}): ${message}`
   }
 
@@ -42,6 +43,7 @@ export async function getUsers(orgId?: string): Promise<ActionResult<User[]>> {
     let query = supabase
       .from('users')
       .select('*, organizations(name), units(name), roles(name)')
+      .is('deleted_at', null) // Filtragem de ativos (Soft Delete)
       .order('full_name')
 
     // Isolamento multi-tenant
@@ -120,7 +122,7 @@ export async function inviteUser(formData: UserInput & { org_id: string }): Prom
 
     sendWelcomeEmail(validated.email, validated.full_name).catch(console.error)
 
-    revalidatePath('/admin/users')
+    revalidateTag('admin-users')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em inviteUser:', getErrorMessage(error))
@@ -149,18 +151,102 @@ export async function updateUserStatus(id: string, status: string): Promise<Acti
       return { success: false, error: sanitizeError(error) }
     }
 
-    await logAudit({
-      tableName: 'users',
-      recordId: id,
-      action: 'UPDATE',
-      oldValues: oldData,
-      newValues: { status },
-    })
-
-    revalidatePath('/admin/users')
+    revalidateTag('admin-users')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em updateUserStatus:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
+export async function deleteUser(id: string, reason?: string): Promise<ActionResult> {
+  try {
+    const auth = await requirePermission('users.manage')
+    const supabase = createAdminSupabaseClient()
+
+    if (reason) {
+      await setAuditContext(`Desativação de usuário: ${reason}`)
+    }
+
+    // Soft Delete via RPC
+    const { error } = await supabase.rpc('soft_delete_record', {
+      target_table: 'users',
+      target_id: id
+    })
+
+    if (error) {
+      console.error('[Action: deleteUser] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
+    }
+
+    revalidateTag('admin-users')
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('Erro em deleteUser:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
+export async function restoreUser(id: string): Promise<ActionResult> {
+  try {
+    await requirePermission('users.manage')
+    const supabase = createAdminSupabaseClient()
+
+    await setAuditContext('Restauração de usuário arquivado')
+
+    const { error } = await supabase.rpc('restore_record', {
+      target_table: 'users',
+      target_id: id
+    })
+
+    if (error) {
+      console.error('[Action: restoreUser] Erro:', error.message)
+      return { success: false, error: sanitizeError(error) }
+    }
+
+    revalidateTag('admin-users')
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('Erro em restoreUser:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
+export async function anonymizeUser(id: string): Promise<ActionResult> {
+  try {
+    const auth = await requirePermission('users.manage')
+    const supabase = createAdminSupabaseClient()
+
+    // 1. Verificar permissão de organização se não for ADMIN global
+    if (auth.role !== 'admin') {
+      const { data: user } = await supabase.from('users').select('org_id').eq('id', id).single()
+      if (user?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
+    }
+
+    await setAuditContext('Processo de Anonimização LGPD (Expurgo de PII e Credenciais)')
+
+    // 2. Anonimizar na tabela pública (Hard Masking + Soft Delete) via RPC
+    const { error: rpcError } = await supabase.rpc('anonymize_user', {
+      target_user_id: id
+    })
+
+    if (rpcError) {
+      console.error('[Action: anonymizeUser] Erro no Database:', rpcError.message)
+      return { success: false, error: sanitizeError(rpcError) }
+    }
+
+    // 3. Expurgar Credenciais no Supabase Auth (Direito ao Esquecimento Definitivo)
+    const { error: authError } = await supabase.auth.admin.deleteUser(id)
+
+    if (authError) {
+      // Nota: Se o usuário já tiver sido deletado do Auth por algum motivo, ignoramos o erro para não travar a ação
+      console.warn('[Action: anonymizeUser] Aviso no Auth:', authError.message)
+    }
+
+    revalidateTag('admin-users')
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('Erro em anonymizeUser:', getErrorMessage(error))
     return { success: false, error: sanitizeError(error) }
   }
 }

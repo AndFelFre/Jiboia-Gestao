@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, CornerDownRight } from 'lucide-react'
+import { ArrowRight, CornerDownRight, Archive, RotateCcw } from 'lucide-react'
 
 interface AuditDiffViewerProps {
     oldValues: any
@@ -10,7 +10,7 @@ interface AuditDiffViewerProps {
 export function AuditDiffViewer({ oldValues, newValues }: AuditDiffViewerProps) {
     // Identifica quais campos mudaram
     const getChanges = () => {
-        const changes: { field: string; oldVal: any; newVal: any }[] = []
+        const changes: { field: string; oldVal: any; newVal: any; type?: 'archive' | 'restore' }[] = []
 
         const allKeys = new Set([
             ...Object.keys(oldValues || {}),
@@ -27,7 +27,14 @@ export function AuditDiffViewer({ oldValues, newValues }: AuditDiffViewerProps) 
             const newVal = newValues?.[key]
 
             if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-                changes.push({ field: key, oldVal, newVal })
+                let type: 'archive' | 'restore' | undefined
+
+                if (key === 'deleted_at') {
+                    if (!oldVal && newVal) type = 'archive'
+                    if (oldVal && !newVal) type = 'restore'
+                }
+
+                changes.push({ field: key, oldVal, newVal, type })
             }
         })
 
@@ -64,7 +71,20 @@ export function AuditDiffViewer({ oldValues, newValues }: AuditDiffViewerProps) 
                             <td className="px-4 py-3 text-slate-400 line-through decoration-red-200/50 border-b border-slate-50 max-w-[150px] truncate">
                                 {formatValue(change.oldVal)}
                             </td>
-                            <td className="px-4 py-3 font-bold text-emerald-600 border-b border-slate-50 max-w-[150px] truncate drop-shadow-sm">
+                            <td className={`px-4 py-3 font-bold border-b border-slate-50 max-w-[150px] truncate drop-shadow-sm ${change.type === 'archive' ? 'text-red-500' :
+                                    change.type === 'restore' ? 'text-blue-500' :
+                                        'text-emerald-600'
+                                }`}>
+                                {change.type === 'archive' && (
+                                    <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-tighter mr-2">
+                                        <Archive className="w-2.5 h-2.5" /> ARQUIVADO
+                                    </span>
+                                )}
+                                {change.type === 'restore' && (
+                                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-tighter mr-2">
+                                        <RotateCcw className="w-2.5 h-2.5" /> RESTAURADO
+                                    </span>
+                                )}
                                 {formatValue(change.newVal)}
                             </td>
                         </tr>
@@ -79,5 +99,7 @@ function formatValue(val: any) {
     if (val === null || val === undefined) return <span className="text-[10px] italic opacity-50">vazio</span>
     if (typeof val === 'boolean') return val ? 'Sim' : 'Não'
     if (typeof val === 'object') return 'JSON'
+    // Se parecer uma data e for o campo deleted_at, formatamos apenas indicando presença
+    if (typeof val === 'string' && val.includes('T') && val.includes('Z')) return 'Timestamp'
     return String(val)
 }

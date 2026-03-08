@@ -1,4 +1,5 @@
-import { getCandidates, getInterviews } from '@/app/recruitment/actions'
+import { getCandidateById, Candidate } from '@/services/recruitment/candidates'
+import { getInterviews, Interview } from '@/services/recruitment/evaluations'
 import { StarEvaluationForm } from '@/components/recruitment/StarEvaluationForm'
 import { PIPELINE_STAGES } from '@/components/recruitment/constants'
 import { format } from 'date-fns'
@@ -9,10 +10,9 @@ import { ArrowLeft, User, FileText, Briefcase, Calendar, Star, CheckCircle2 } fr
 export const dynamic = 'force-dynamic'
 
 export default async function CandidateProfilePage({ params }: { params: { id: string } }) {
-    // Busca candidato (hack pegando todos e filtrando no server p/ aproveitar as actions base)
-    // Num cenario ideal existiria getCandidateById
-    const { data: candidates } = await getCandidates()
-    const candidate = candidates?.find(c => c.id === params.id)
+    // Busca candidato diretamente pelo serviço unificado
+    const result = await getCandidateById(params.id)
+    const candidate = result.success ? result.data : null
 
     // Busca as entrevistas cadastradas para este candaditato
     const { data: interviews } = await getInterviews(params.id)
@@ -110,7 +110,7 @@ export default async function CandidateProfilePage({ params }: { params: { id: s
                     </h2>
 
                     {interviews && interviews.length > 0 ? (
-                        interviews.map((interview) => (
+                        interviews.map((interview: Interview) => (
                             <div key={interview.id} className="bg-card border border-border rounded-xl p-6 shadow-sm group">
                                 <div className="flex justify-between items-start mb-4 pb-4 border-b border-border">
                                     <div>

@@ -144,7 +144,7 @@ export async function addLeadershipRite(params: {
 
         const riteData = {
             plan_id: planResult.data.id,
-            category: 'leadership_rite', // Forçado pelo backend
+            category: 'leadership_rite' as const, // Forçado pelo backend - Imutável via UI
             rite_type: params.riteType,
             title: params.title,
             description: params.description || null,
@@ -154,7 +154,8 @@ export async function addLeadershipRite(params: {
             completed_by: isCompleted ? auth.userId : null
         }
 
-        // Validação via Zod (Camada final de integridade)
+        // Validação via Zod (Camada Zero-Trust de integridade)
+        // Garante que o objeto riteData adere ao contrato estrito do sistema
         pdiItemSchema.parse(riteData)
 
         const { data: newRite, error } = await supabase

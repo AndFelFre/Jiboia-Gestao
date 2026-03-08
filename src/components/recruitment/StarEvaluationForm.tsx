@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createInterview } from '@/app/recruitment/actions'
+import { evaluateCandidate } from '@/services/recruitment/evaluations'
 import { useRouter } from 'next/navigation'
 import { Star, MessageSquare } from 'lucide-react'
 
@@ -17,7 +17,7 @@ export function StarEvaluationForm({ candidateId }: { candidateId: string }) {
 
         const formData = new FormData(e.currentTarget)
 
-        const result = await createInterview({
+        const result = await evaluateCandidate({
             candidate_id: candidateId,
             type: formData.get('type') as string,
             star_situation: formData.get('star_situation') as string,
@@ -27,9 +27,12 @@ export function StarEvaluationForm({ candidateId }: { candidateId: string }) {
             fit_integrity: parseInt(formData.get('fit_integrity') as string) || 0,
             fit_focus: parseInt(formData.get('fit_focus') as string) || 0,
             fit_learning: parseInt(formData.get('fit_learning') as string) || 0,
+            fit_challenge: parseInt(formData.get('fit_challenge') as string) || 0,
+            fit_communication: parseInt(formData.get('fit_communication') as string) || 0,
+            fit_service: parseInt(formData.get('fit_service') as string) || 0,
+            fit_persistence: parseInt(formData.get('fit_persistence') as string) || 0,
             justification: formData.get('justification') as string,
             recommendation: formData.get('recommendation') as string,
-            conducted_at: new Date().toISOString(),
         })
 
         if (result.success) {
@@ -112,18 +115,34 @@ export function StarEvaluationForm({ candidateId }: { candidateId: string }) {
 
             <div className="space-y-4 mb-6 pt-4 border-t border-border">
                 <h4 className="font-semibold text-foreground text-sm">Avaliação de Cultura (1 a 5)</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Integridade / Transparência</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Integridade</label>
                         <input type="number" name="fit_integrity" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Foco no Cliente / Dono</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Foco / Dono</label>
                         <input type="number" name="fit_focus" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-muted-foreground mb-1">Aprender / Desaprender</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Aprendizado</label>
                         <input type="number" name="fit_learning" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Desafio</label>
+                        <input type="number" name="fit_challenge" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Comunicação</label>
+                        <input type="number" name="fit_communication" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Serviço</label>
+                        <input type="number" name="fit_service" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Persistência</label>
+                        <input type="number" name="fit_persistence" min="1" max="5" defaultValue="3" required className="w-full px-3 py-2 border border-input rounded-md focus:ring-primary focus:border-primary" />
                     </div>
                 </div>
             </div>

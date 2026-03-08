@@ -163,10 +163,18 @@ export type TrackInput = z.infer<typeof trackSchema>
 /**
  * Custom Reports (Self-service Analytics)
  */
+export const widgetSchema = z.object({
+  id: z.string().uuid(),
+  type: z.enum(['turnover_chart', 'pipeline_funnel', 'employee_count']),
+  title: z.string().trim().min(2, 'Título do widget muito curto'),
+})
+
 export const customReportSchema = z
   .object({
     name: trimmed(3, 'Nome deve ter no mínimo 3 caracteres').max(100, 'Nome muito longo'),
-    config: z.record(z.string(), z.unknown()).default({}),
+    config: z.object({
+      widgets: z.array(widgetSchema).min(1, 'Adicione pelo menos um widget'),
+    }),
   })
   .strict()
 
