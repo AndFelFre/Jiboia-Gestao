@@ -1,18 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { submitApplication } from '@/app/actions/careers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { TurnstileWidget } from '@/components/security/TurnstileWidget'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export default function ApplyPage({ params }: { params: { id: string } }) {
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+
+    const handleVerify = useCallback((token: string) => {
+        setTurnstileToken(token)
+    }, [])
+
+    const handleExpire = useCallback(() => {
+        setTurnstileToken(null)
+    }, [])
 
     async function handleSubmit(formData: FormData) {
+        if (!turnstileToken) {
+            setResult({ success: false, message: 'Aguarde a verificação de segurança.' })
+            return
+        }
+
         setLoading(true)
         setResult(null)
 
@@ -23,6 +38,7 @@ export default function ApplyPage({ params }: { params: { id: string } }) {
             phone: formData.get('phone') as string,
             linkedin_url: formData.get('linkedin_url') as string,
             summary: formData.get('summary') as string,
+            turnstile_token: turnstileToken,
         }
 
         const res = await submitApplication(payload)
@@ -103,12 +119,18 @@ export default function ApplyPage({ params }: { params: { id: string } }) {
                         <p className="text-[10px] text-muted-foreground mt-1">Máximo 500 caracteres</p>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Enviando...' : 'Enviar Candidatura'}
+                    {/* Cloudflare Turnstile — Captcha invisível */}
+                    <TurnstileWidget
+                        onVerify={handleVerify}
+                        onExpire={handleExpire}
+                    />
+
+                    <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
+                        {loading ? 'Enviando...' : !turnstileToken ? 'Verificando segurança...' : 'Enviar Candidatura'}
                     </Button>
 
                     <p className="text-[10px] text-muted-foreground text-center">
-                        Ao enviar, você concorda com o tratamento dos seus dados conforme a LGPD.
+                        Protegido por Cloudflare Turnstile. Ao enviar, você concorda com o tratamento dos seus dados conforme a LGPD.
                     </p>
                 </form>
             </main>

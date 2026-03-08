@@ -63,6 +63,37 @@ export async function getPublicJobById(id: string) {
  */
 export async function submitApplication(formData: unknown) {
     try {
+        // Camada 0: Validação Turnstile — barrar robôs antes de tocar no banco
+        const rawData = formData as Record<string, unknown>
+        const turnstileToken = rawData?.turnstile_token as string | undefined
+
+        if (!turnstileToken) {
+            return {
+                success: false,
+                message: 'Verificação de segurança obrigatória. Recarregue a página.'
+            }
+        }
+
+        const turnstileSecret = process.env.TURNSTILE_SECRET_KEY || '1x0000000000000000000000000000000AA' // Test key (always passes)
+        const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                secret: turnstileSecret,
+                response: turnstileToken,
+            }),
+        })
+
+        const verifyResult = await verifyResponse.json()
+
+        if (!verifyResult.success) {
+            console.warn('[Careers] Turnstile rejeitou token:', verifyResult['error-codes'])
+            return {
+                success: false,
+                message: 'Verificação de segurança falhou. Tente novamente.'
+            }
+        }
+
         // Camada 1: Validação Zod agressiva
         const parsed = publicApplicationSchema.safeParse(formData)
 
