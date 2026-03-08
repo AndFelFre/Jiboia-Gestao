@@ -2,6 +2,7 @@
 
 import { requirePermission } from '@/lib/supabase/auth'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { sanitizeError } from '@/lib/utils'
 
 interface AuditFilters {
     table?: string
@@ -56,13 +57,7 @@ export async function getAuditLogs(filters: AuditFilters = {}) {
             }
         }
     } catch (error: unknown) {
-        console.error('Erro em getAuditLogs:', error)
-        const message = error instanceof Error ? error.message : String(error)
-
-        if (message === 'UNAUTHORIZED') return { success: false, error: 'Sessão expirada. Faça login novamente.' }
-        if (message === 'FORBIDDEN') return { success: false, error: 'Você não tem permissão para ler logs de auditoria.' }
-
-        return { success: false, error: `Erro: ${message}` }
+        return { success: false, error: sanitizeError(error) }
     }
 }
 

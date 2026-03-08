@@ -2,7 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/supabase/auth'
-import { getErrorMessage } from '@/lib/utils'
+import { getErrorMessage, sanitizeError } from '@/lib/utils'
 import type { ActionResult, PerformanceOrgAnalytics } from '@/types'
 
 /**
@@ -48,10 +48,9 @@ export async function getPerformanceOrganizationAnalytics(
             data: data as PerformanceOrgAnalytics[]
         }
     } catch (error) {
-        console.error('Error fetching performance analytics:', error)
         return {
             success: false,
-            error: getErrorMessage(error)
+            error: sanitizeError(error)
         }
     }
 }
@@ -73,10 +72,9 @@ export async function refreshPerformanceAnalytics(): Promise<ActionResult> {
 
         return { success: true }
     } catch (error) {
-        console.error('Error refreshing performance view:', error)
         return {
             success: false,
-            error: getErrorMessage(error)
+            error: sanitizeError(error)
         }
     }
 }
