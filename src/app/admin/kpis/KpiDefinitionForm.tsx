@@ -6,12 +6,28 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export function KpiDefinitionForm() {
+interface Organization {
+    id: string
+    name: string
+}
+
+interface KpiDefinitionFormProps {
+    organizations: Organization[]
+    selectedOrgId?: string
+}
+
+export function KpiDefinitionForm({ organizations, selectedOrgId }: KpiDefinitionFormProps) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [orgId, setOrgId] = useState(selectedOrgId || '')
 
     async function handleSubmit(formData: FormData) {
+        if (!orgId) {
+            setError('Selecione uma organização antes de criar um KPI.')
+            return
+        }
+
         setLoading(true)
         setError(null)
         setSuccess(false)
@@ -25,6 +41,7 @@ export function KpiDefinitionForm() {
         const cap = parseFloat(formData.get('cap_percentage') as string)
 
         const res = await createKpiDefinition({
+            org_id: orgId,
             name,
             key_slug,
             data_type,
@@ -38,7 +55,6 @@ export function KpiDefinitionForm() {
             setError(res.error || 'Erro ao criar KPI')
         } else {
             setSuccess(true)
-            // Opcional: recarregar ou avisar o usuário
             setTimeout(() => setSuccess(false), 3000)
         }
         setLoading(false)
@@ -60,6 +76,23 @@ export function KpiDefinitionForm() {
             )}
 
             <form action={handleSubmit} className="space-y-4">
+                {/* Seletor de Organização (Contexto) */}
+                <div>
+                    <Label htmlFor="org_id">Organização *</Label>
+                    <select
+                        id="org_id"
+                        value={orgId}
+                        onChange={(e) => setOrgId(e.target.value)}
+                        className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        required
+                    >
+                        <option value="">Selecione uma organização...</option>
+                        {organizations.map((org) => (
+                            <option key={org.id} value={org.id}>{org.name}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div>
                     <Label htmlFor="name">Nome do Indicador</Label>
                     <Input id="name" name="name" placeholder="Ex: TPV Mensal" required className="mt-1" />
@@ -118,7 +151,7 @@ export function KpiDefinitionForm() {
                     Marque para KPIs onde **menor é melhor** (ex: Churn, Reclamações).
                 </p>
 
-                <Button type="submit" className="w-full mt-6" disabled={loading}>
+                <Button type="submit" className="w-full mt-6" disabled={loading || !orgId}>
                     {loading ? 'Cadastrando...' : 'Criar Indicador'}
                 </Button>
             </form>

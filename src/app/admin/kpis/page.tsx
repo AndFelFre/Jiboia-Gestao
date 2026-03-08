@@ -1,17 +1,32 @@
 ﻿import { getKpiDefinitions } from '@/app/actions/kpis'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { requirePermission } from '@/lib/supabase/auth'
+import { getOrganizations } from '../actions/organizations'
+import { requirePermission, requireAuth } from '@/lib/supabase/auth'
 import { KpiDefinitionForm } from './KpiDefinitionForm'
+import Link from 'next/link'
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminKpisPage() {
-    await requirePermission('org.manage') // Proteção Admin
-    const result = await getKpiDefinitions({})
-    const kpis = result.success && result.data ? result.data as any[] : [] // fallback any temporário para evitar quebra mas melhorado
+    const auth = await requirePermission('org.manage')
+
+    // Buscar organizações para o seletor de contexto
+    const orgsResult = await getOrganizations()
+    const organizations = orgsResult.success ? (orgsResult.data as any[]) : []
+
+    // Determinar org_id: user normal → sua org, admin → primeira org disponível
+    const contextOrgId = auth.role !== 'admin' ? auth.orgId : organizations[0]?.id
+
+    // Buscar KPIs da org selecionada
+    const result = await getKpiDefinitions({ org_id: contextOrgId })
+    const kpis = result.success && result.data ? result.data as any[] : []
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">Gestão de Indicadores Globais (KPIs)</h1>
+                <Link href="/admin" className="text-primary hover:text-primary/80 text-sm">
+                    ← Admin
+                </Link>
+                <h1 className="text-2xl font-bold text-foreground mt-1">Gestão de Indicadores Globais (KPIs)</h1>
                 <p className="text-muted-foreground mt-1">
                     Crie e gerencie os KPIs que serão distribuídos em forma de Meta (Targets) para os colaboradores da operação.
                 </p>
@@ -20,7 +35,19 @@ export default async function AdminKpisPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Formulário Fixo na Lateral */}
                 <div className="lg:col-span-1">
-                    <KpiDefinitionForm />
+                    <KpiDefinitionForm
+                        organizations={organizations}
+                        selectedOrgId={contextOrgId}
+                    />
+
+                    <div className="mt-4">
+                        <Link
+                            href="/admin/kpis/targets"
+                            className="block w-full text-center px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted/80 font-medium text-sm border border-border"
+                        >
+                            Atribuir Metas →
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Listagem de KPIs Ativos */}
@@ -29,7 +56,7 @@ export default async function AdminKpisPage() {
 
                     {kpis.length === 0 ? (
                         <div className="bg-card border border-border rounded-lg p-6 text-center text-muted-foreground">
-                            Nenhum KPI cadastrado. Crie o seu primeiro indicador.
+                            Nenhum KPI cadastrado{contextOrgId ? ' nesta organização' : ''}. Crie o seu primeiro indicador.
                         </div>
                     ) : (
                         <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
@@ -75,4 +102,3 @@ export default async function AdminKpisPage() {
         </div>
     )
 }
-

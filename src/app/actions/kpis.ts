@@ -1,7 +1,8 @@
 'use server'
 
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { revalidateTag } from 'next/cache'
 import { createSafeAction } from '@/lib/supabase/safe-action'
 import { calculateKpiAchievement } from '@/lib/kpi-engine'
 import { kpiDefinitionSchema, kpiTargetSchema, kpiResultSchema } from '@/validations/kpis'
@@ -11,39 +12,68 @@ import { z } from 'zod'
 // 1. Administrar KPIs (Definições)
 // ==========================================
 
-export const createKpiDefinition = createSafeAction(kpiDefinitionSchema, async (data, auth) => {
-    // Fallback pra garantir role
+const createKpiDefinitionSchema = kpiDefinitionSchema.extend({
+    org_id: z.string().uuid('Selecione uma organização válida.'),
+})
+
+export const createKpiDefinition = createSafeAction(createKpiDefinitionSchema, async (data, auth) => {
     if (auth.role !== 'admin') {
         throw new Error('Apenas administradores podem criar novos KPIs.')
     }
 
-    const supabase = createServerSupabaseClient()
+    // Anti-spoofing: user normal só opera na própria org
+    if (auth.role !== 'admin' && data.org_id !== auth.orgId) {
+        throw new Error('FORBIDDEN')
+    }
+
+    // Superadmin usa admin client (sem org_id no RLS)
+    const supabase = auth.role === 'admin'
+        ? createAdminSupabaseClient()
+        : createServerSupabaseClient()
+
+    const { org_id, ...kpiData } = data
 
     const { data: kpi, error } = await supabase
         .from('kpi_definitions')
         .insert({
-            ...data,
-            org_id: auth.orgId,
+            ...kpiData,
+            org_id,
         })
         .select('*')
         .single()
 
     if (error) throw error
 
-    revalidatePath('/admin/kpis')
+    revalidateTag('admin-kpis')
     return kpi
 }, 'performance.evaluate')
 
-export const getKpiDefinitions = createSafeAction(z.object({}), async (_, auth) => {
-    const supabase = createServerSupabaseClient()
-    const { data, error } = await supabase
+const getKpiSchema = z.object({
+    org_id: z.string().uuid().optional(),
+})
+
+export const getKpiDefinitions = createSafeAction(getKpiSchema, async (data, auth) => {
+    // Superadmin usa admin client (bypass RLS)
+    const supabase = auth.role === 'admin'
+        ? createAdminSupabaseClient()
+        : createServerSupabaseClient()
+
+    // Determinar org_id: superadmin usa o selecionado, user normal usa o próprio
+    const targetOrgId = auth.role === 'admin' ? data.org_id : auth.orgId
+
+    if (!targetOrgId) {
+        // Superadmin sem org selecionada → retorna vazio (força seleção)
+        return []
+    }
+
+    const { data: kpis, error } = await supabase
         .from('kpi_definitions')
         .select('*')
-        .eq('org_id', auth.orgId)
+        .eq('org_id', targetOrgId)
         .order('name')
 
     if (error) throw error
-    return data
+    return kpis
 })
 
 // ==========================================
@@ -51,7 +81,9 @@ export const getKpiDefinitions = createSafeAction(z.object({}), async (_, auth) 
 // ==========================================
 
 export const assignKpiTarget = createSafeAction(kpiTargetSchema, async (data, auth) => {
-    const supabase = createServerSupabaseClient()
+    const supabase = auth.role === 'admin'
+        ? createAdminSupabaseClient()
+        : createServerSupabaseClient()
 
     // VALIDATION: Cross-tenant check (User must belong to the same Org)
     const { data: userData, error: userCheckErr } = await supabase
@@ -60,15 +92,22 @@ export const assignKpiTarget = createSafeAction(kpiTargetSchema, async (data, au
         .eq('id', data.user_id)
         .single()
 
-    if (userCheckErr || userData?.org_id !== auth.orgId) {
+    if (userCheckErr || !userData) {
+        throw new Error('Usuário não encontrado.')
+    }
+
+    // Anti-spoofing: non-admin can only assign targets in their own org
+    if (auth.role !== 'admin' && userData.org_id !== auth.orgId) {
         throw new Error('O usuário selecionado não pertence à sua organização.')
     }
+
+    const targetOrgId = userData.org_id
 
     const { data: target, error } = await supabase
         .from('kpi_targets')
         .upsert({
             ...data,
-            org_id: auth.orgId
+            org_id: targetOrgId
         }, { onConflict: 'user_id, kpi_id, period_start, period_end' })
         .select('*')
         .single()
@@ -77,16 +116,16 @@ export const assignKpiTarget = createSafeAction(kpiTargetSchema, async (data, au
 
     // Se criou uma meta, vamos garantir que existe um "result" vazio atrelado
     const { error: resultErr } = await supabase.from('kpi_results').insert({
-        org_id: auth.orgId,
+        org_id: targetOrgId,
         target_id: target.id,
         actual_value: 0,
         achievement_percentage: 0
     })
 
-    // Ignorar duplicatas se já existe (upsert natural pelo ID unico target_id)
+    // Ignorar duplicatas se já existe
     if (resultErr && resultErr.code !== '23505') throw resultErr
 
-    revalidatePath('/admin/kpis/targets')
+    revalidateTag('admin-kpis')
     return target
 }, 'performance.evaluate')
 
@@ -117,7 +156,7 @@ export const updateKpiResult = createSafeAction(kpiResultSchema, async (data, _a
         weight: Number(targetData.weight)
     })
 
-    // 3. Atualizar Resultado (A Policy de RLS grantirá que ele só dê UPDATE se o target for dele)
+    // 3. Atualizar Resultado (A Policy de RLS garante que ele só dê UPDATE se o target for dele)
     const { data: result, error } = await supabase
         .from('kpi_results')
         .update({
@@ -132,6 +171,6 @@ export const updateKpiResult = createSafeAction(kpiResultSchema, async (data, _a
 
     if (error) throw error
 
-    revalidatePath('/dashboard/kpis')
+    revalidateTag('dashboard-kpis')
     return result
 }, 'pdi.manage')
