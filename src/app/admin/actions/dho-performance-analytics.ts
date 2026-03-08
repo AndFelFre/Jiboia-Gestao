@@ -22,7 +22,7 @@ export async function getPerformanceOrganizationAnalytics(
         if (!user) throw new Error('Usuário não autenticado')
 
         const { data: profile } = await supabase
-            .from('profiles')
+            .from('users')
             .select('org_id')
             .eq('id', user.id)
             .single()

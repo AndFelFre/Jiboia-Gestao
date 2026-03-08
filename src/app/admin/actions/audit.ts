@@ -23,7 +23,7 @@ export async function getAuditLogs(filters: AuditFilters = {}) {
 
         let query = supabase
             .from('audit_logs')
-            .select('*, changed_by_user:users(full_name, email)', { count: 'exact' })
+            .select('*, changed_by_user:users!changed_by(full_name, email)', { count: 'exact' })
             .eq('org_id', auth.orgId)
             .order('created_at', { ascending: false })
             .range(from, to)

@@ -58,25 +58,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar Simulado / Header */}
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b z-50 px-6 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">R</div>
-          <span className="text-xl font-bold tracking-tight text-slate-800 dark:text-white">RG Digital</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/meu-perfil" className="hidden md:flex flex-col items-end mr-2 group">
-            <span className="text-sm font-semibold group-hover:text-primary transition-colors">{userData.full_name}</span>
-            <span className="text-[10px] uppercase font-bold text-primary tracking-widest">{roleName}</span>
-          </Link>
-          <form action="/api/auth/signout" method="post">
-            <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500">
-              <LogOut className="w-5 h-5" />
-            </button>
-          </form>
-        </div>
-      </nav>
 
       <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto">
         {/* Boas vindas */}
@@ -196,14 +177,14 @@ export default async function DashboardPage() {
           </Link>
 
           {roleName === 'admin' && (
-            <Link href="/admin" className="lg:col-span-2 group border-2 border-dashed border-border p-6 rounded-3xl flex items-center justify-between hover:border-primary/50 transition-all hover:bg-card">
+            <Link href="/admin/organizations" className="lg:col-span-2 group border-2 border-dashed border-border p-6 rounded-3xl flex items-center justify-between hover:border-primary/50 transition-all hover:bg-card">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground">
                   <Settings className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold">Configurações do Sistema</h4>
-                  <p className="text-sm text-muted-foreground">Unidades, cargos, níveis e auditoria de sistema.</p>
+                  <h4 className="font-bold">Gerenciamento Organizacional</h4>
+                  <p className="text-sm text-muted-foreground">Unidades, cargos, níveis e configurações globais.</p>
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-muted-foreground/30 group-hover:text-primary transition-all" />
