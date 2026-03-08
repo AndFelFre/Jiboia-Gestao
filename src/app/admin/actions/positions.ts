@@ -18,9 +18,15 @@ function getErrorMessage(error: unknown): string {
   return String(error)
 }
 
-const sanitizeError = (error: unknown) => {
-  const { sanitizeError: centralSanitizeError } = require('@/lib/utils')
-  return centralSanitizeError(error)
+function sanitizeError(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error !== null) {
+    const e = error as { message?: string; code?: string }
+    if (e.code === '23505') return 'Este cargo já está cadastrado.'
+    if (e.code === '23503') return 'Não é possível remover este cargo pois ele possui registros vinculados.'
+    if (e.message) return e.message
+  }
+  return String(error)
 }
 
 export async function getPositions(orgId?: string): Promise<ActionResult<Position[]>> {
