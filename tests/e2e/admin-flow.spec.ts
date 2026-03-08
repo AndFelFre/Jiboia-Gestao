@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Admin DHO Flow Audit', () => {
 
-    test('Deve criar um novo cargo com feedback visual e redirecionamento', async ({ page }) => {
+    test('Deve criar um novo cargo com feedback visual e redirecionamento', async ({ page }: { page: any }) => {
         // 1. Acessa a página de novo cargo
         await page.goto('/admin/positions/new');
 
@@ -37,7 +37,7 @@ test.describe('Admin DHO Flow Audit', () => {
         await expect(page).toHaveURL(/.*\/admin\/positions/);
     });
 
-    test('Deve validar navegação básica da Sidebar', async ({ page }) => {
+    test('Deve validar navegação básica da Sidebar', async ({ page }: { page: any }) => {
         await page.goto('/dashboard');
 
         // Testa link de Analytics
