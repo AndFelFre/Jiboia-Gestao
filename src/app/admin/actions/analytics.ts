@@ -262,7 +262,7 @@ export async function getTurnoverRiskAnalysis(): Promise<{ success: boolean, dat
 
             if (totalItems > 0 && completedItems < totalItems && daysSinceCreated > 30) {
                 score += 30
-                factors.push('Onboarding atrasado (> 30 dias)')
+                factors.push('Indicador: Progresso de Onboarding (Engajamento Inicial)')
             }
 
             const { data: evaluations } = await supabase
@@ -275,20 +275,20 @@ export async function getTurnoverRiskAnalysis(): Promise<{ success: boolean, dat
             if (!evaluations || evaluations.length === 0) {
                 if (daysSinceCreated > 90) {
                     score += 20
-                    factors.push('Nunca realizou avaliação de performance')
+                    factors.push('Indicador: Lacuna de Ciclo Avaliativo')
                 }
             } else {
                 const lastEval = new Date(evaluations[0].created_at)
                 const daysSinceEval = Math.floor((Date.now() - lastEval.getTime()) / (1000 * 60 * 60 * 24))
                 if (daysSinceEval > 180) {
                     score += 25
-                    factors.push('Sem avaliação há mais de 6 meses')
+                    factors.push('Indicador: Ciclo de Feedback Excedido')
                 }
             }
 
             if (daysSinceCreated > 365 * 2) {
                 score += 10
-                factors.push('Tempo de casa elevado (Estagnação?)')
+                factors.push('Indicador: Tempo de Estabilidade em Cargo')
             }
 
             analyses.push({

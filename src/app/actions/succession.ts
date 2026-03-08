@@ -6,11 +6,14 @@ import { successionPlanSchema } from '@/validations/succession'
 import OpenAI from 'openai'
 
 interface SuccessionPlanResult {
-    readinessScore: number
+    aiSuggestedReadinessScore: number
+    confirmedReadinessScore: number | null
+    requiresHumanReview: boolean
     strengths: string[]
     developmentAreas: string[]
     recommendedNextSteps: string[]
     isAiGenerated: boolean
+    aiDisclaimer: string
 }
 
 export const generateSuccessionPlan = createSafeAction(successionPlanSchema, async (data, auth) => {
@@ -24,23 +27,16 @@ export const generateSuccessionPlan = createSafeAction(successionPlanSchema, asy
             role:roles(name)
         `)
         .eq('id', data.userId)
-        .eq('org_id', auth.orgId) // Proteção multi-tenant explícita
+        .eq('org_id', auth.orgId)
         .single()
 
     if (userError || !userData) {
         throw new Error('Usuário não encontrado ou acesso negado.')
     }
 
-    // Resolvendo tipagem de role q volta em join
     const roleName = (userData.role as unknown as { name: string })?.name || 'employee'
-
-    // Mock history (simulado conforme regra de negócio)
-    const mockPerformanceHistory = [
-        { period: '2025-H2', score: 4.8, comments: 'Extrema capacidade analítica, mas falha em gerenciar o tempo da equipe.' },
-        { period: '2026-H1', score: 4.2, comments: 'Demonstrou melhora em gestão de escopo. Ótima visão de cliente.' }
-    ]
-
     const apiKey = process.env.OPENAI_API_KEY
+    const disclaimer = "AVISO DE IA: Este score é uma sugestão baseada em algoritmos e deve ser revisado por um gestor ou DPO antes de qualquer decisão de carreira."
 
     // Se existir a chave, tenta via OpenAI
     if (apiKey && apiKey.length > 20) {
@@ -48,18 +44,12 @@ export const generateSuccessionPlan = createSafeAction(successionPlanSchema, asy
             const openai = new OpenAI({ apiKey })
 
             const prompt = `
-            Você é um consultor executivo de Recursos Humanos de alto escalão.
-            Crie um plano de sucessão (Sucession Planning) para este colaborador analisando o histórico.
-
+            Você é um consultor executivo de Recursos Humanos.
+            Crie uma SUGESTÃO de plano de sucessão.
             Nome: ${userData.full_name}
             Papel Atual: ${roleName}
-            Histórico (Assessments): ${JSON.stringify(mockPerformanceHistory)}
-            
-            Retorne ESTRITAMENTE um JSON válido, sem formatação markdown (sem \`\`\`json) contendo as seguintes chaves:
-            "readinessScore" (número de 0 a 100 indicando a prontidão para sucessão/promoção na visão Nine Box)
-            "strengths" (array de no máximo 3 strings curtas com pontos fortes)
-            "developmentAreas" (array de no máximo 3 strings curtas de gargalos)
-            "recommendedNextSteps" (array de 2 ações imediatas focadas no PDI do funcionário para chegar na promoção)
+            Retorne ESTRITAMENTE um JSON:
+            "readinessScore" (0-100), "strengths", "developmentAreas", "recommendedNextSteps"
             `
 
             const response = await openai.chat.completions.create({
@@ -72,11 +62,14 @@ export const generateSuccessionPlan = createSafeAction(successionPlanSchema, asy
             const parsedData = JSON.parse(content)
 
             return {
-                readinessScore: parsedData.readinessScore || 70,
+                aiSuggestedReadinessScore: parsedData.readinessScore || 70,
+                confirmedReadinessScore: null,
+                requiresHumanReview: true,
                 strengths: parsedData.strengths || [],
                 developmentAreas: parsedData.developmentAreas || [],
                 recommendedNextSteps: parsedData.recommendedNextSteps || [],
-                isAiGenerated: true
+                isAiGenerated: true,
+                aiDisclaimer: disclaimer
             } as SuccessionPlanResult
         } catch (aiError) {
             console.error('Falha na resposta da OpenAI, acionando fallback', aiError)
@@ -84,23 +77,14 @@ export const generateSuccessionPlan = createSafeAction(successionPlanSchema, asy
     }
 
     // 2. Fallback Heurístico
-    const readinessCalc = Math.floor(Math.random() * (95 - 65 + 1)) + 65
-
     return {
-        readinessScore: readinessCalc,
-        strengths: [
-            'Habilidade Comportamental alinhada',
-            'Bons feedbacks no período 2026-H1',
-            'Visão da empresa afiada'
-        ],
-        developmentAreas: [
-            'Gestão do tempo da equipe sob estresse.',
-            'Participação proativa em comitês'
-        ],
-        recommendedNextSteps: [
-            'Iniciar um curso prático de OKRs e Agile',
-            'Alocar em um Squad temporário como Head interino'
-        ],
-        isAiGenerated: false
+        aiSuggestedReadinessScore: 75,
+        confirmedReadinessScore: null,
+        requiresHumanReview: true,
+        strengths: ['Habilidade Comportamental alinhada'],
+        developmentAreas: ['Gestão de tempo'],
+        recommendedNextSteps: ['Curso de OKRs'],
+        isAiGenerated: false,
+        aiDisclaimer: disclaimer
     } as SuccessionPlanResult
 }, 'users.manage')
