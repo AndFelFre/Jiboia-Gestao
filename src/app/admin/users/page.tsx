@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { getUsers, updateUserStatus, resendInvite } from '../actions/users'
+import { getUsers } from '../actions/users'
+import { UserActions } from './UserActions'
 import { getOrganizations } from '../actions/organizations'
 import { getUnits } from '../actions/units'
 import { Button } from '@/components/ui/button'
-import { Plus, User as UserIcon, Shield, MapPin, Building, ToggleLeft, ToggleRight, Mail, Send } from 'lucide-react'
+import { Plus, User as UserIcon, Shield, MapPin, Building, Mail } from 'lucide-react'
 import { EmptyState } from '@/components/ui/feedback'
 import { cn } from '@/lib/utils'
 
@@ -175,54 +176,7 @@ export default async function UsersPage() {
                         </span>
                       </td>
                       <td className="px-8 py-5 whitespace-nowrap text-right text-sm">
-                        <div className="flex justify-end gap-2">
-                          {user.status === 'pending' && (
-                            <form action={async () => {
-                              'use server'
-                              await resendInvite(user.id)
-                            }}>
-                              <Button
-                                type="submit"
-                                variant="ghost"
-                                size="sm"
-                                title="Reenviar Convite"
-                                className="h-9 w-9 p-0 rounded-xl text-indigo-600 hover:bg-indigo-50"
-                              >
-                                <Send className="w-4 h-4" />
-                              </Button>
-                            </form>
-                          )}
-                          <form action={async () => {
-                            'use server'
-                            const newStatus = user.status === 'active' ? 'inactive' : 'active'
-                            await updateUserStatus(user.id, newStatus)
-                          }} className="inline"
-                          >
-                            <Button
-                              type="submit"
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "h-9 px-4 rounded-xl font-bold transition-all",
-                                user.status === 'active'
-                                  ? "text-slate-400 hover:text-orange-600 hover:bg-orange-50"
-                                  : "text-green-600 hover:bg-green-50"
-                              )}
-                            >
-                              {user.status === 'active' ? (
-                                <>
-                                  <ToggleLeft className="w-4 h-4 mr-2 opacity-50" />
-                                  Desativar
-                                </>
-                              ) : (
-                                <>
-                                  <ToggleRight className="w-4 h-4 mr-2" />
-                                  Ativar
-                                </>
-                              )}
-                            </Button>
-                          </form>
-                        </div>
+                        <UserActions userId={user.id} status={user.status} />
                       </td>
                     </tr>
                   )
