@@ -13,6 +13,14 @@ interface ActionResult<T = unknown> {
   error?: string
 }
 
+const getSiteUrl = () => {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.NODE_ENV === 'development') return 'http://localhost:3000';
+  return 'https://jiboia-gestao.vercel.app';
+};
+
+const redirectTo = `${getSiteUrl()}/auth/callback?next=/auth/setup-password`;
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
   return String(error)
@@ -89,7 +97,7 @@ export async function inviteUser(formData: UserInput & { org_id: string }): Prom
       validated.email,
       {
         data: { full_name: validated.full_name },
-        // Opcional: redirectTo: process.env.NEXT_PUBLIC_SITE_URL + '/auth/setup-password'
+        redirectTo,
       }
     )
 
@@ -166,7 +174,7 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
     }
 
     // 3. Chamar novamente o inviteUserByEmail (reenvia o Magic Link)
-    const { error: resendError } = await supabase.auth.admin.inviteUserByEmail(user.email)
+    const { error: resendError } = await supabase.auth.admin.inviteUserByEmail(user.email, { redirectTo })
 
     if (resendError) {
       console.error('[Action: resendInvite] Erro no Supabase:', resendError.message)
