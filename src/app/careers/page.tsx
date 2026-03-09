@@ -34,8 +34,9 @@ export default async function CareersPage() {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {jobs.map((job: any) => (
+                        {jobs.map((job) => (
                             <Link
+
                                 key={job.id}
                                 href={`/careers/${job.id}`}
                                 className="block bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-md transition-all group"

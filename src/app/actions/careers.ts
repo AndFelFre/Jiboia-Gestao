@@ -3,17 +3,32 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { publicApplicationSchema } from '@/validations/careers'
 
+interface PublicJob {
+    id: string
+    title: string
+    description: string | null
+    location: string | null
+    employment_type: string | null
+    salary_min: number | null
+    salary_max: number | null
+    requirements?: string[]
+    responsibilities?: string[]
+    organizations: { name: string } | null
+    positions?: { title: string } | null
+}
+
 /**
  * Lista vagas públicas — RLS policy `careers_public_read_open_jobs`
  * permite anon ler apenas vagas com status = 'open'.
  */
-export async function getPublicJobs() {
+export async function getPublicJobs(): Promise<{ success: boolean, jobs: PublicJob[] }> {
     try {
         const supabase = createServerSupabaseClient()
 
         const { data, error } = await supabase
             .from('jobs')
             .select('id, title, description, location, employment_type, salary_min, salary_max, organizations(name)')
+            .eq('status', 'open') // Reforço de segurança
             .order('created_at', { ascending: false })
 
         if (error) {
@@ -21,7 +36,13 @@ export async function getPublicJobs() {
             return { success: false, jobs: [] }
         }
 
-        return { success: true, jobs: data || [] }
+        // Normalização de joins (Supabase retorna array para relações)
+        const normalizedJobs = (data || []).map(job => ({
+            ...job,
+            organizations: Array.isArray(job.organizations) ? job.organizations[0] : job.organizations
+        }))
+
+        return { success: true, jobs: normalizedJobs as unknown as PublicJob[] }
     } catch {
         return { success: false, jobs: [] }
     }
@@ -31,7 +52,7 @@ export async function getPublicJobs() {
  * Busca detalhes de uma vaga pública por ID.
  * RLS garante que só vagas abertas são visíveis para anon.
  */
-export async function getPublicJobById(id: string) {
+export async function getPublicJobById(id: string): Promise<{ success: boolean, job: PublicJob | null }> {
     try {
         const supabase = createServerSupabaseClient()
 
@@ -45,11 +66,20 @@ export async function getPublicJobById(id: string) {
             return { success: false, job: null }
         }
 
-        return { success: true, job: data }
+        // Normalização de joins
+        const job = {
+            ...data,
+            organizations: Array.isArray(data.organizations) ? data.organizations[0] : data.organizations,
+            positions: Array.isArray(data.positions) ? data.positions[0] : data.positions
+        }
+
+        return { success: true, job: job as unknown as PublicJob }
     } catch {
         return { success: false, job: null }
     }
 }
+
+
 
 /**
  * Write-Only Vault: candidatura pública opaca.
