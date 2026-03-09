@@ -2,6 +2,8 @@
 
 import { createSafeAction } from '@/lib/supabase/safe-action'
 import { aiQuestionSchema } from '@/validations/ai'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 interface KBItem {
     keywords: string[]
@@ -24,36 +26,97 @@ const KNOWLEDGE_BASE: KBItem[] = [
         category: 'onboarding',
         keywords: ['primeiro', 'dia', 'acesso', 'notebook', 'onboarding', 'checklist'],
         answer: 'No seu primeiro dia, você receberá seu kit de boas-vindas e notebook. Siga o checklist de onboarding no seu portal para configurar seus acessos iniciais e agendar seu papo de cultura.'
-    },
-    {
-        category: 'ferramentas',
-        keywords: ['slack', 'gmail', 'zoom', 'jira', 'confluence', 'ferramenta'],
-        answer: 'Utilizamos o Slack para comunicação rápida, Gmail para e-mails formais, Jira para gestão de tarefas e Zoom para nossas reuniões remotas. Seus acessos são criados automaticamente.'
-    },
-    {
-        category: 'cultura',
-        keywords: ['carreira', 'promoção', 'crescimento', 'pdi'],
-        answer: 'Temos ciclos de avaliação semestrais. Seu PDI é a bússola do seu crescimento. Foque nos gaps identificados no seu mapeamento de competências para subir de nível na sua trilha!'
     }
 ]
 
-export const askCultureAssistant = createSafeAction(aiQuestionSchema, async (data) => {
-    const normalized = data.question.toLowerCase()
+export const askCultureAssistant = createSafeAction(aiQuestionSchema, async (data, auth) => {
+    const supabase = createServerSupabaseClient()
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    const rateLimitAmount = 10
+    const FEATURE_SLUG = 'culture_assistant'
 
-    // Busca simples por palavras-chave
+    // 1. Rate Limit Check (Última Hora)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count, error: countError } = await supabase
+        .from('ai_usage_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', auth.userId)
+        .eq('feature_slug', FEATURE_SLUG)
+        .gte('created_at', oneHourAgo)
+
+    if (count !== null && count >= rateLimitAmount) {
+        return {
+            answer: "Limite de uso da IA atingido por esta hora (10/hora). Por favor, aguarde um pouco para perguntar novamente ou consulte o manual da empresa.",
+            category: 'limit_exceeded'
+        }
+    }
+
+    // 2. Coleta de Contexto (Database)
+    const { data: dbContext } = await supabase
+        .from('culture_knowledge')
+        .select('content, category')
+        .eq('org_id', auth.orgId)
+
+    const contextString = dbContext?.map(c => `[${c.category.toUpperCase()}]: ${c.content}`).join('\n') || ''
+
+    // 3. Execução via Gemini (ou Fallback)
+    if (apiKey && apiKey.length > 10) {
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey)
+            const model = genAI.getGenerativeModel({
+                model: "gemini-1.5-flash",
+                generationConfig: { temperature: 0.1 } // Temperatua baixa para evitar criatividade/alucinação
+            })
+
+            const prompt = `
+                Você é o assistente virtual do Jiboia Gestão, especializado em Cultura e Onboarding.
+                REGRAS CRÍTICAS:
+                1. Responda APENAS com base no CONTEXTO abaixo.
+                2. Se a informação não estiver no CONTEXTO, responda exatamente: "Desculpe, não encontrei essa informação no manual da empresa. Por favor, entre em contato com o time de DHO."
+                3. PROIBIDO inventar benefícios, valores, datas ou regras. Seja direto e profissional.
+                4. Use listas ou negrito se ajudar na leitura.
+
+                CONTEXTO DA EMPRESA:
+                ${contextString || 'A empresa ainda não cadastrou informações detalhadas no guia de cultura.'}
+
+                PERGUNTA DO COLABORADOR:
+                ${data.question}
+            `
+
+            const result = await model.generateContent(prompt)
+            const answer = result.response.text()
+
+            // Log de Uso (Somente em caso de sucesso na API)
+            await supabase.from('ai_usage_logs').insert({
+                user_id: auth.userId,
+                org_id: auth.orgId,
+                feature_slug: FEATURE_SLUG
+            })
+
+            return {
+                answer,
+                category: 'ai_generated'
+            }
+        } catch (error) {
+            console.error('Erro no Gemini:', error)
+        }
+    }
+
+    // 4. Fallback Heurístico (Se AI falhar ou não houver chave)
+    const normalized = data.question.toLowerCase()
     const match = KNOWLEDGE_BASE.find(item =>
         item.keywords.some(kw => normalized.includes(kw))
     )
 
     if (match) {
         return {
-            answer: match.answer,
+            answer: match.answer + "\n\n(Nota: Esta resposta é baseada no conhecimento geral do sistema)",
             category: match.category
         }
     }
 
     return {
-        answer: "Ainda estou aprendendo sobre esse assunto! Tente perguntar sobre Benefícios, Cultura ou Onboarding. Se for urgente, você pode procurar o time de DHO.",
+        answer: "Desculpe, não encontrei uma resposta específica no momento e meu motor de IA está em manutenção. Por favor, consulte o time de DHO.",
         category: 'unknown'
     }
 })
