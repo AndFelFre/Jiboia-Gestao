@@ -1,13 +1,12 @@
-'use client'
-
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { userSchema, type UserInput } from '@/validations/schemas'
 import { inviteUser } from '../actions/users'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from '@/components/ui/feedback'
 import Link from 'next/link'
+
 
 interface Organization {
     id: string
@@ -43,6 +42,17 @@ export default function UserForm({ organizations, units, roles, positions }: Use
     const [loading, setLoading] = useState(false)
     const [selectedOrg, setSelectedOrg] = useState('')
     const router = useRouter()
+    const searchParams = useSearchParams()
+
+    // Validação de Contexto via URL
+    useEffect(() => {
+        const orgIdParam = searchParams.get('orgId')
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+        if (orgIdParam && uuidRegex.test(orgIdParam)) {
+            setSelectedOrg(orgIdParam)
+        }
+    }, [searchParams])
 
     const {
         register,
@@ -52,6 +62,8 @@ export default function UserForm({ organizations, units, roles, positions }: Use
         resolver: zodResolver(userSchema),
     })
 
+    const isContextLocked = searchParams.has('orgId')
+
     // Filtros baseados na organização selecionada
     const filteredUnits = selectedOrg
         ? units.filter(u => u.org_id === selectedOrg)
@@ -60,6 +72,7 @@ export default function UserForm({ organizations, units, roles, positions }: Use
     const filteredPositions = selectedOrg
         ? positions.filter(p => p.org_id === selectedOrg)
         : []
+
 
     const onSubmit = async (data: UserInput) => {
         if (!selectedOrg) {
@@ -105,23 +118,26 @@ export default function UserForm({ organizations, units, roles, positions }: Use
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                        <label htmlFor="org_id" className="block text-sm font-medium text-foreground">Organização *</label>
-                        <select
-                            id="org_id"
-                            value={selectedOrg}
-                            onChange={(e) => setSelectedOrg(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-                        >
-                            <option value="">Selecione uma organização...</option>
-                            {organizations.map((org) => (
-                                <option key={org.id} value={org.id}>{org.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {!isContextLocked && (
+                        <div className="md:col-span-2">
+                            <label htmlFor="org_id" className="block text-sm font-medium text-foreground">Organização *</label>
+                            <select
+                                id="org_id"
+                                value={selectedOrg}
+                                onChange={(e) => setSelectedOrg(e.target.value)}
+                                className="mt-1 block w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                            >
+                                <option value="">Selecione uma organização...</option>
+                                {organizations.map((org) => (
+                                    <option key={org.id} value={org.id}>{org.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <div>
                         <label htmlFor="full_name" className="block text-sm font-medium text-foreground">Nome Completo *</label>
+
                         <input
                             {...register('full_name')}
                             type="text"
@@ -201,11 +217,12 @@ export default function UserForm({ organizations, units, roles, positions }: Use
 
                 <div className="flex justify-end space-x-4 pt-4">
                     <Link
-                        href="/admin/users"
+                        href={isContextLocked ? `/admin/organizations/${selectedOrg}?tab=team` : '/admin/users'}
                         className="px-4 py-2 border border-input rounded text-foreground hover:bg-muted"
                     >
                         Cancelar
                     </Link>
+
                     <button
                         type="submit"
                         disabled={loading}

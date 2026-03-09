@@ -32,6 +32,7 @@ export default function ApplyPage({ params }: { params: { id: string } }) {
         setResult(null)
 
         const payload = {
+
             job_id: params.id,
             full_name: formData.get('full_name') as string,
             email: formData.get('email') as string,

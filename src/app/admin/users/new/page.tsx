@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import UserForm from '../UserForm'
 import { getOrganizations } from '../../actions/organizations'
 import { getUnits } from '../../actions/units'
 import { getPositions } from '../../actions/positions'
+import { Loader2 } from 'lucide-react'
 
 // Reutilizamos a lógica de roles da página principal
 async function getRoles() {
@@ -38,13 +40,16 @@ export default async function NewUserPage() {
             </header>
 
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <UserForm
-                    organizations={orgsResult.success ? (orgsResult.data as any) : []}
-                    units={unitsResult.success ? (unitsResult.data as any) : []}
-                    positions={positionsResult.success ? (positionsResult.data as any) : []}
-                    roles={rolesResult.success ? (rolesResult.data as any) : []}
-                />
+                <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary h-8 w-8" /></div>}>
+                    <UserForm
+                        organizations={orgsResult.success ? (orgsResult.data as any) : []}
+                        units={unitsResult.success ? (unitsResult.data as any) : []}
+                        positions={positionsResult.success ? (positionsResult.data as any) : []}
+                        roles={rolesResult.success ? (rolesResult.data as any) : []}
+                    />
+                </Suspense>
             </main>
         </div>
     )
 }
+

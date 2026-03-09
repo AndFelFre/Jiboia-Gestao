@@ -109,10 +109,11 @@ export default async function OrganizationsPage() {
                     <td className="px-8 py-5 whitespace-nowrap text-right text-sm">
                       <div className="flex justify-end items-center gap-2">
                         <Button asChild variant="ghost" size="sm" className="h-9 px-4 rounded-xl font-bold text-slate-600 hover:bg-slate-100">
-                          <Link href={`/admin/organizations/${org.id}/edit`}>
-                            Editar
+                          <Link href={`/admin/organizations/${org.id}`}>
+                            Gerenciar
                           </Link>
                         </Button>
+
                         <AdminDeleteButton
                           itemId={org.id}
                           itemName={org.name}

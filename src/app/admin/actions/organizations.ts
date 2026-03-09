@@ -172,3 +172,34 @@ export async function deleteOrganization(id: string): Promise<ActionResult> {
   }
 }
 
+export async function getOrganizationById(id: string): Promise<ActionResult> {
+  try {
+    const auth = await requirePermission('org.manage')
+    const supabase = auth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
+
+    if (auth.role !== 'admin' && auth.orgId !== id) {
+      throw new Error('FORBIDDEN')
+    }
+
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single()
+
+    if (error) {
+      console.error('[Action: getOrganizationById] Erro:', error.message)
+      return { success: false, error: 'Organização não encontrada' }
+    }
+
+    return { success: true, data }
+  } catch (error: unknown) {
+    console.error('Erro em getOrganizationById:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
+
