@@ -70,6 +70,9 @@ export async function getUsers(orgId?: string): Promise<ActionResult<User[]>> {
 import { userSchema, type UserInput } from '@/validations/schemas'
 
 export async function inviteUser(formData: UserInput & { org_id: string }): Promise<ActionResult> {
+  let authUserId: string | null = null
+  const supabase = createAdminSupabaseClient()
+
   try {
     const auth = await requirePermission('users.manage')
 
@@ -79,22 +82,27 @@ export async function inviteUser(formData: UserInput & { org_id: string }): Prom
 
     const { org_id, ...userInput } = formData
     const validated = userSchema.parse(userInput)
-    const supabase = createAdminSupabaseClient()
 
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: validated.email,
-      password: Math.random().toString(36).slice(-8),
-      email_confirm: true,
-      user_metadata: { full_name: validated.full_name }
-    })
+    // 1. Enviar convite via Supabase Auth (Magic Link)
+    // Supabase gerencia o e-mail e o status 'invited' automaticamente
+    const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+      validated.email,
+      {
+        data: { full_name: validated.full_name },
+        // Opcional: redirectTo: process.env.NEXT_PUBLIC_SITE_URL + '/auth/setup-password'
+      }
+    )
 
     if (authError) {
       console.error('[Action: inviteUser] Erro no Auth do Supabase:', authError.message)
       return { success: false, error: authError.message }
     }
 
+    authUserId = authData.user.id
+
+    // 2. Criar perfil na tabela pública
     const userData = {
-      id: authData.user.id,
+      id: authUserId,
       email: validated.email,
       full_name: validated.full_name,
       org_id: formData.org_id,
@@ -109,26 +117,69 @@ export async function inviteUser(formData: UserInput & { org_id: string }): Prom
       .insert(userData)
 
     if (dbError) {
-      console.error('[Action: inviteUser] Erro no banco de dados:', dbError.message)
+      // ROLLBACK: Se o banco de dados falhar, removemos o usuário do Auth
+      console.error('[Action: inviteUser] Erro no banco de dados. Executando Rollback...', dbError.message)
+      await supabase.auth.admin.deleteUser(authUserId)
       return { success: false, error: sanitizeError(dbError) }
     }
 
     await logAudit({
       tableName: 'users',
-      recordId: authData.user.id,
+      recordId: authUserId,
       action: 'INSERT',
       newValues: userData,
     })
-
-    sendWelcomeEmail(validated.email, validated.full_name).catch(console.error)
 
     revalidateTag('admin-users')
     return { success: true }
   } catch (error: unknown) {
     console.error('Erro em inviteUser:', getErrorMessage(error))
+    // Fallback de segurança: se capturamos erro e temos um authUserId, tentamos limpar
+    if (authUserId) {
+      await supabase.auth.admin.deleteUser(authUserId).catch(e => console.error('Erro no fallback do rollback:', e))
+    }
     return { success: false, error: sanitizeError(error) }
   }
 }
+
+/**
+ * Reenvia o e-mail de convite (Magic Link) para um usuário pendente.
+ */
+export async function resendInvite(userId: string): Promise<ActionResult> {
+  try {
+    const auth = await requirePermission('users.manage')
+    const supabase = createAdminSupabaseClient()
+
+    // 1. Buscar e-mail e org do usuário para validação
+    const { data: user, error: findError } = await supabase
+      .from('users')
+      .select('email, org_id, status')
+      .eq('id', userId)
+      .single()
+
+    if (findError || !user) throw new Error('Usuário não encontrado.')
+    if (user.status !== 'pending') throw new Error('Apenas usuários pendentes podem receber reenvio de convite.')
+
+    // 2. Validar permissão de organização
+    if (auth.role !== 'admin' && user.org_id !== auth.orgId) {
+      throw new Error('FORBIDDEN')
+    }
+
+    // 3. Chamar novamente o inviteUserByEmail (reenvia o Magic Link)
+    const { error: resendError } = await supabase.auth.admin.inviteUserByEmail(user.email)
+
+    if (resendError) {
+      console.error('[Action: resendInvite] Erro no Supabase:', resendError.message)
+      return { success: false, error: resendError.message }
+    }
+
+    return { success: true }
+  } catch (error: unknown) {
+    console.error('Erro em resendInvite:', getErrorMessage(error))
+    return { success: false, error: sanitizeError(error) }
+  }
+}
+
 
 export async function updateUserStatus(id: string, status: string): Promise<ActionResult> {
   try {

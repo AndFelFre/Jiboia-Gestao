@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,6 +6,17 @@ import { inviteUser } from '../actions/users'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from '@/components/ui/feedback'
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from '@/components/ui/dialog'
+import { QuickCreateUnit, QuickCreatePosition } from '@/components/admin/QuickCreateItems'
+import { Button } from '@/components/ui/button'
 
 
 interface Organization {
@@ -43,6 +52,15 @@ export default function UserForm({ organizations, units, roles, positions }: Use
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const [selectedOrg, setSelectedOrg] = useState('')
+
+    // Estados locais para permitir atualização dinâmica pós-criação inline
+    const [localUnits, setLocalUnits] = useState<Unit[]>(units)
+    const [localPositions, setLocalPositions] = useState<Position[]>(positions)
+
+    // Estados dos Modais
+    const [unitModalOpen, setUnitModalOpen] = useState(false)
+    const [posModalOpen, setPosModalOpen] = useState(false)
+
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -59,6 +77,7 @@ export default function UserForm({ organizations, units, roles, positions }: Use
     const {
         register,
         handleSubmit,
+        setValue,
         formState: { errors },
     } = useForm<UserInput>({
         resolver: zodResolver(userSchema),
@@ -66,13 +85,13 @@ export default function UserForm({ organizations, units, roles, positions }: Use
 
     const isContextLocked = searchParams.has('orgId')
 
-    // Filtros baseados na organização selecionada
+    // Filtros baseados na organização selecionada (usando as listas locais)
     const filteredUnits = selectedOrg
-        ? units.filter(u => u.org_id === selectedOrg)
+        ? localUnits.filter(u => u.org_id === selectedOrg)
         : []
 
     const filteredPositions = selectedOrg
-        ? positions.filter(p => p.org_id === selectedOrg)
+        ? localPositions.filter(p => p.org_id === selectedOrg)
         : []
 
 
@@ -183,8 +202,35 @@ export default function UserForm({ organizations, units, roles, positions }: Use
                         )}
                     </div>
 
-                    <div>
-                        <label htmlFor="unit_id" className="block text-sm font-medium text-foreground">Unidade *</label>
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="unit_id" className="block text-sm font-medium text-foreground">Unidade *</label>
+                            {selectedOrg && (
+                                <Dialog open={unitModalOpen} onOpenChange={setUnitModalOpen}>
+                                    <DialogTrigger asChild>
+                                        <button type="button" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
+                                            <Plus className="w-3 h-3" /> Criar Nova
+                                        </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Nova Unidade</DialogTitle>
+                                            <DialogDescription>
+                                                Cadastre rapidamente um novo departamento ou filial.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <QuickCreateUnit
+                                            orgId={selectedOrg}
+                                            onSuccess={(newUnit) => {
+                                                setLocalUnits(prev => [...prev, { ...newUnit, org_id: selectedOrg }])
+                                                setValue('unit_id', newUnit.id)
+                                                setUnitModalOpen(false)
+                                            }}
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+                        </div>
                         <select
                             {...register('unit_id')}
                             id="unit_id"
@@ -201,8 +247,35 @@ export default function UserForm({ organizations, units, roles, positions }: Use
                         )}
                     </div>
 
-                    <div>
-                        <label htmlFor="position_id" className="block text-sm font-medium text-foreground">Cargo (Opcional)</label>
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="position_id" className="block text-sm font-medium text-foreground">Cargo (Opcional)</label>
+                            {selectedOrg && (
+                                <Dialog open={posModalOpen} onOpenChange={setPosModalOpen}>
+                                    <DialogTrigger asChild>
+                                        <button type="button" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
+                                            <Plus className="w-3 h-3" /> Criar Novo
+                                        </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle>Novo Cargo</DialogTitle>
+                                            <DialogDescription>
+                                                Adicione uma nova função à empresa.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <QuickCreatePosition
+                                            orgId={selectedOrg}
+                                            onSuccess={(newPos) => {
+                                                setLocalPositions(prev => [...prev, { ...newPos, org_id: selectedOrg }])
+                                                setValue('position_id', newPos.id)
+                                                setPosModalOpen(false)
+                                            }}
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+                        </div>
                         <select
                             {...register('position_id')}
                             id="position_id"
