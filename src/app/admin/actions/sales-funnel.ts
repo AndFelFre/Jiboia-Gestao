@@ -37,7 +37,7 @@ export async function submitFunnelActivity(data: FunnelActivityInput): Promise<A
 
         // Upsert: Se já existir registro hoje, atualiza. Senão, cria.
         const { error } = await supabase
-            .from('funnel_activities')
+            .from('funnel_daily_stats')
             .upsert({
                 user_id: auth.userId,
                 org_id: user.org_id,
