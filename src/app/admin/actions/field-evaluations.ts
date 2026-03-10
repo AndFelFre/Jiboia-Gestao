@@ -66,7 +66,7 @@ export async function submitFieldEvaluation(data: FieldEvaluationInput): Promise
     } catch (error: any) {
         console.error('Error submitting field evaluation:', error)
         if (error instanceof z.ZodError) {
-            return { success: false, error: error.errors[0].message }
+            return { success: false, error: error.issues[0].message }
         }
         return { success: false, error: error.message || 'Erro ao registrar avaliação' }
     }
