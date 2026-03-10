@@ -59,12 +59,26 @@ export function DHOAlertsBanner({ alerts }: DHOAlertsBannerProps) {
                                 <p className="text-xs font-bold text-slate-700">{alert.message}</p>
                             </div>
                         </div>
-                        <Link
-                            href={`/admin/users/${alert.userId}`}
-                            className="p-2 opacity-0 group-hover:opacity-100 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                        >
-                            <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            <Link
+                                href={
+                                    alert.type === 'onboarding_stagnated' ? '/admin/analytics#engagement' :
+                                        alert.type === 'score_low' ? '/admin/analytics#results' :
+                                            (alert.type === 'rite_overdue' || alert.type === 'no_recent_rite') ? '/admin/performance/evaluations' :
+                                                `/admin/users/${alert.userId}`
+                                }
+                                className="p-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 rounded-lg transition-all"
+                            >
+                                Analisar Gaps
+                            </Link>
+                            <Link
+                                href={`/admin/users/${alert.userId}`}
+                                className="p-2 opacity-0 group-hover:opacity-100 text-slate-400 hover:bg-slate-100 rounded-lg transition-all"
+                                title="Ver Perfil Completo"
+                            >
+                                <ArrowRight className="w-4 h-4" />
+                            </Link>
+                        </div>
                     </div>
                 ))}
             </div>

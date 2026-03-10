@@ -32,151 +32,10 @@ import {
   TrendingUp,
   ListTodo,
 } from 'lucide-react'
+import { ADMIN_MODULES, navCategories } from '@/config/navigation'
+import { AdminQuickActions } from '@/components/admin/AdminQuickActions'
 import { getLeadershipAlerts } from '@/app/admin/actions/dho-alerts'
 import { DHOAlertsBanner } from '@/components/dho/DHOAlertsBanner'
-
-const adminModules = [
-  {
-    title: 'Organizações',
-    description: 'Empresas e configurações globais',
-    href: '/admin/organizations',
-    icon: Building2,
-    color: 'blue',
-  },
-  {
-    title: 'Unidades',
-    description: 'Filiais e centros de custo',
-    href: '/admin/units',
-    icon: MapPin,
-    color: 'emerald',
-  },
-  {
-    title: 'Níveis',
-    description: 'Estrutura e degraus de carreira',
-    href: '/admin/levels',
-    icon: Layers,
-    color: 'orange',
-  },
-  {
-    title: 'Cargos',
-    description: 'Posições e responsabilidades',
-    href: '/admin/positions',
-    icon: Briefcase,
-    color: 'purple',
-  },
-  {
-    title: 'Trilhas',
-    description: 'Caminhos de desenvolvimento',
-    href: '/admin/tracks',
-    icon: GitBranch,
-    color: 'pink',
-  },
-  {
-    title: 'Usuários',
-    description: 'Gestão de acessos e convites',
-    href: '/admin/users',
-    icon: Users,
-    color: 'indigo',
-  },
-  {
-    title: 'Auditoria',
-    description: 'Rastreabilidade de alterações',
-    href: '/admin/audit',
-    icon: History,
-    color: 'slate',
-  },
-  {
-    title: 'Gestão de Acessos',
-    description: 'Monitorar e revogar sessões',
-    href: '/admin/sessions',
-    icon: Lock,
-    color: 'rose',
-  },
-  {
-    title: 'Recrutamento',
-    description: 'Vagas e gestão de candidatos',
-    href: '/admin/recruitment',
-    icon: Target,
-    color: 'blue',
-  },
-  {
-    title: 'Performance',
-    description: 'Avaliações e competências',
-    href: '/admin/performance/evaluations',
-    icon: Rocket,
-    color: 'amber',
-  },
-  {
-    title: 'KPIs Globais',
-    description: 'Definir indicadores de sucesso',
-    href: '/admin/kpis',
-    icon: Zap,
-    color: 'blue',
-  },
-  {
-    title: 'Metas da Equipe',
-    description: 'Atribuição de bônus e OKRs',
-    href: '/admin/kpis/targets',
-    icon: Flag,
-    color: 'indigo',
-  },
-  {
-    title: 'Analytics Turnover',
-    description: 'Taxa de saída e retenção',
-    href: '/admin/analytics/turnover',
-    icon: TrendingDown,
-    color: 'red',
-  },
-  {
-    title: 'Heatmap de Skills',
-    description: 'Matriz tática de gaps',
-    href: '/admin/analytics/skills',
-    icon: Activity,
-    color: 'violet',
-  },
-  {
-    title: 'Gamificação',
-    description: 'Reconhecimento e conquistas',
-    href: '/admin/gamification',
-    icon: Trophy,
-    color: 'yellow',
-  },
-  {
-    title: 'IA Alertas (Risco)',
-    description: 'Predição de desengajamento',
-    href: '/admin/analytics/turnover-risk',
-    icon: BrainCircuit,
-    color: 'indigo',
-  },
-  {
-    title: 'Funil Diário',
-    description: 'Gestão de produtividade',
-    href: '/admin/funnel',
-    icon: ListTodo,
-    color: 'orange',
-  },
-  {
-    title: 'Cultura & Clima',
-    description: 'eNPS e engajamento',
-    href: '/admin/analytics/culture',
-    icon: Activity,
-    color: 'pink',
-  },
-  {
-    title: 'Analytics Onboarding',
-    description: 'Maturidade e Rampagem (D90)',
-    href: '/admin/analytics/onboarding',
-    icon: Rocket,
-    color: 'indigo',
-  },
-  {
-    title: 'Performance Analytics',
-    description: 'Heatmap de RUA e SMART',
-    href: '/admin/analytics/performance',
-    icon: TrendingUp,
-    color: 'emerald',
-  }
-];
 
 const colorStyles = {
   blue: 'bg-blue-50 text-blue-600 border-blue-100 shadow-blue-100/50 hover:bg-blue-600 hover:text-white',
@@ -238,40 +97,65 @@ export default async function AdminPage() {
           </p>
         </div>
 
+        {/* Quick Actions - Atalhos de alta frequência */}
+        <AdminQuickActions />
+
         {/* DHO Risk Alerts */}
         <DHOAlertsBanner alerts={alerts} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          {adminModules.map((module) => {
-            const Icon = module.icon
+        <div className="space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          {navCategories.map((category) => {
+            const CatIcon = category.icon;
+            const modules = ADMIN_MODULES.filter(m => m.category === category.id);
+
+            if (modules.length === 0) return null;
+
             return (
-              <Link
-                key={module.href}
-                href={module.href}
-                className="group relative flex flex-col p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-2 border-b-4 hover:border-b-primary overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 -mt-2 -mr-2 w-24 h-24 bg-primary/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center mb-6 border transition-all duration-500 shadow-sm",
-                  colorStyles[module.color as keyof typeof colorStyles]
-                )}>
-                  <Icon className="w-6 h-6" />
-                </div>
-
-                <div className="flex-1">
-                  <h3 className="text-lg font-black text-slate-900 group-hover:text-primary transition-colors mb-2">{module.title}</h3>
-                  <p className="text-sm text-slate-400 font-medium leading-relaxed">{module.description}</p>
-                </div>
-
-                <div className="mt-8 flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-primary transition-colors">Acessar Módulo</span>
-                  <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary transition-colors">
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white" />
+              <section key={category.id} className="space-y-8">
+                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <CatIcon className="w-5 h-5 text-slate-400" />
                   </div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">
+                    {category.label}
+                  </h3>
                 </div>
-              </Link>
-            )
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {modules.map((module) => {
+                    const Icon = module.icon
+                    return (
+                      <Link
+                        key={module.href}
+                        href={module.href}
+                        className="group relative flex flex-col p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-1 border-b-4 hover:border-b-primary overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-primary/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                        <div className={cn(
+                          "w-12 h-12 rounded-xl flex items-center justify-center mb-4 border transition-all duration-500 shadow-sm",
+                          colorStyles[module.color as keyof typeof colorStyles]
+                        )}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+
+                        <div className="flex-1">
+                          <h3 className="text-base font-black text-slate-900 group-hover:text-primary transition-colors mb-1">{module.title}</h3>
+                          <p className="text-xs text-slate-400 font-medium leading-relaxed">{module.description}</p>
+                        </div>
+
+                        <div className="mt-6 flex items-center justify-between">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-primary transition-colors">Acessar</span>
+                          <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-primary transition-colors">
+                            <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-white" />
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </section>
+            );
           })}
         </div>
 
@@ -299,7 +183,7 @@ export default async function AdminPage() {
             </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-white/5 backdrop-blur-md rounded-[2rem] p-6 border border-white/10 hover:border-primary/50 transition-colors">
-                <div className="text-3xl font-black mb-1">{adminModules.length}</div>
+                <div className="text-3xl font-black mb-1">{ADMIN_MODULES.length}</div>
                 <div className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Módulos Ativos</div>
               </div>
               <div className="bg-white/5 backdrop-blur-md rounded-[2rem] p-6 border border-white/10 hover:border-primary/50 transition-colors">

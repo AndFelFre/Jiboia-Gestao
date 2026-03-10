@@ -13,9 +13,13 @@ import {
     Settings,
     LogOut,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Search
 } from 'lucide-react'
 import { useState } from 'react'
+import {
+    ADMIN_MODULES
+} from '@/config/navigation'
 
 interface SidebarItem {
     title: string
@@ -24,14 +28,29 @@ interface SidebarItem {
     role?: string
 }
 
-const sidebarItems: SidebarItem[] = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-    { title: 'Recrutamento', href: '/admin/recruitment', icon: Users },
-    { title: 'Performance', href: '/admin/performance/evaluations', icon: Zap },
-    { title: 'PDI', href: '/dashboard/pdi', icon: Target },
-    { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-    { title: 'Auditoria', href: '/admin/audit', icon: History, role: 'admin' },
-    { title: 'Admin', href: '/admin', icon: Settings, role: 'admin' },
+const sidebarSections = [
+    {
+        label: 'Geral',
+        items: [
+            { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+            { title: 'Meu PDI', href: '/dashboard/pdi', icon: Target },
+        ]
+    },
+    {
+        label: 'Gestão DHO',
+        items: [
+            ADMIN_MODULES.find(m => m.title === 'Recrutamento')!,
+            ADMIN_MODULES.find(m => m.title === 'Avaliações')!,
+            { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+        ]
+    },
+    {
+        label: 'Sistema',
+        items: [
+            ADMIN_MODULES.find(m => m.title === 'Auditoria')!,
+            { title: 'Admin Hub', href: '/admin', icon: Settings, role: 'admin' },
+        ]
+    }
 ]
 
 export function DashboardSidebar({ user }: { user: any }) {
@@ -61,30 +80,64 @@ export function DashboardSidebar({ user }: { user: any }) {
                 </button>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto scrollbar-hide">
-                {sidebarItems.map((item) => {
-                    const isActive = pathname.startsWith(item.href)
-                    const Icon = item.icon
+            {/* Search Trigger (Mobile friendly) */}
+            <div className="px-4 mb-6">
+                <button
+                    onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+                    className={cn(
+                        "w-full flex items-center gap-4 px-4 py-3 rounded-xl bg-white/5 border border-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all group",
+                        collapsed ? "justify-center px-0" : ""
+                    )}
+                    title="Buscar (Cmd+K)"
+                >
+                    <Search size={20} className="group-hover:scale-110 transition-transform" />
+                    {!collapsed && (
+                        <div className="flex-1 flex items-center justify-between">
+                            <span className="text-[11px] uppercase font-black tracking-widest text-left">Buscar...</span>
+                            <span className="text-[9px] font-black opacity-40 bg-white/10 px-1.5 py-0.5 rounded border border-white/10">⌘K</span>
+                        </div>
+                    )}
+                </button>
+            </div>
 
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative",
-                                isActive
-                                    ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold"
-                                    : "text-slate-400 hover:bg-white/5 hover:text-white"
-                            )}
-                        >
-                            <Icon className={cn("w-5 h-5 shrink-0", isActive ? "" : "group-hover:scale-110 transition-transform")} />
-                            {!collapsed && (
-                                <span className="text-[11px] uppercase font-black tracking-widest">{item.title}</span>
-                            )}
-                        </Link>
-                    )
-                })}
+            {/* Navigation */}
+            <nav className="flex-1 px-4 space-y-8 overflow-y-auto scrollbar-hide">
+                {sidebarSections.map((section) => (
+                    <div key={section.label} className="space-y-2">
+                        {!collapsed && (
+                            <h4 className="px-4 text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-4">
+                                {section.label}
+                            </h4>
+                        )}
+                        <div className="space-y-1.5">
+                            {section.items.map((item) => {
+                                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                                const Icon = item.icon
+
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={cn(
+                                            "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative",
+                                            isActive
+                                                ? "bg-primary text-white shadow-lg shadow-primary/20 font-bold"
+                                                : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                        )}
+                                    >
+                                        <Icon className={cn("w-5 h-5 shrink-0", isActive ? "" : "group-hover:scale-110 transition-transform")} />
+                                        {!collapsed && (
+                                            <span className="text-[11px] uppercase font-black tracking-widest">{item.title}</span>
+                                        )}
+                                        {isActive && !collapsed && (
+                                            <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                                        )}
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    </div>
+                ))}
             </nav>
 
             {/* User section */}

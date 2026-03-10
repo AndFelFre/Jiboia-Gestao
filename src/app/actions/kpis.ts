@@ -174,3 +174,20 @@ export const updateKpiResult = createSafeAction(kpiResultSchema, async (data, _a
     revalidateTag('dashboard-kpis')
     return result
 }, 'pdi.manage')
+export const getMyKpiTargets = createSafeAction(z.object({}), async (_data, auth) => {
+    const supabase = createServerSupabaseClient()
+
+    // Busca metas, definições e resultados do usuário logado
+    const { data: targets, error } = await supabase
+        .from('kpi_targets')
+        .select(`
+            *,
+            kpi_definitions (*),
+            kpi_results (*)
+        `)
+        .eq('user_id', auth.userId)
+        .order('period_end', { ascending: false })
+
+    if (error) throw error
+    return targets
+})

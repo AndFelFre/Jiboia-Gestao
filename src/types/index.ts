@@ -280,7 +280,7 @@ export interface KpiResult {
 // AVALIAÇÃO DE DESEMPENHO (RUA + SMART)
 // ============================================
 
-export type EvaluationStatus = 'draft' | 'in_progress' | 'closed' | 'cancelled'
+export type EvaluationStatus = 'draft' | 'in_progress' | 'pending_calibration' | 'closed' | 'cancelled'
 export type SMARTGoalStatus = 'planned' | 'in_progress' | 'achieved' | 'partially_achieved' | 'missed'
 
 export type NineBoxQuadrant =
@@ -308,6 +308,7 @@ export interface PerformanceEvaluation {
   nine_box_quadrant: NineBoxQuadrant | null
   calibrated_at: string | null
   calibrated_by: string | null
+  calibration_comments: string | null
 
   closed_at: string | null
   closed_by: string | null

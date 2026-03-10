@@ -5,25 +5,11 @@ import { requireAuth } from '@/lib/supabase/auth'
 import type { ActionResult, PerformanceEvaluation, PDIItem, NineBoxQuadrant } from '@/types'
 import { revalidatePath } from 'next/cache'
 
-/**
- * Função determinística para converter Desempenho (RUA + SMART) em bucket 1-3.
- */
-function calculatePerformanceBucket(ruaMean: number, smartProgress: number, hasSmart: boolean): number {
-    if (!hasSmart) {
-        if (ruaMean < 3.0) return 1
-        if (ruaMean >= 4.5) return 3
-        return 2
-    }
-
-    // Bucket 1 (Abaixo): RUA < 3.0 OU SMART < 50%
-    if (ruaMean < 3.0 || smartProgress < 0.5) return 1
-
-    // Bucket 3 (Supera): RUA >= 4.5 E SMART >= 90%
-    if (ruaMean >= 4.5 && smartProgress >= 0.9) return 3
-
-    // Bucket 2 (Atende): Todos os outros casos
-    return 2
-}
+import {
+    calculatePerformanceScore,
+    calculatePerformanceBucket,
+    getTrafficLight
+} from '@/lib/kpi-engine'
 
 /**
  * Mapeia o cruzamento Performance x Potencial para o Quadrante 9-Box.
@@ -75,8 +61,8 @@ export async function getEvaluationForUser(userId: string): Promise<ActionResult
         if (!isAdmin && !isLeader) {
             if (isOwner) {
                 // Colaborador vendo o próprio perfil:
-                // 1. Não vê draft nem cancelled
-                if (evalData.status === 'draft' || evalData.status === 'cancelled') {
+                // 1. Não vê draft, pending_calibration nem cancelled
+                if (['draft', 'pending_calibration', 'cancelled'].includes(evalData.status)) {
                     return { success: true, data: null }
                 }
                 // 2. PRIVACIDADE: Oculta campos de calibração estratégica
@@ -87,6 +73,7 @@ export async function getEvaluationForUser(userId: string): Promise<ActionResult
                     nine_box_quadrant,
                     calibrated_at,
                     calibrated_by,
+                    calibration_comments,
                     ...safeData
                 } = evalData
                 return { success: true, data: safeData as PerformanceEvaluation }
@@ -154,7 +141,8 @@ export async function updateEvaluationRUA(
         potential_comments?: string
         rua_comments?: string
         overall_comments?: string
-        status?: 'in_progress' | 'draft'
+        calibration_comments?: string
+        status?: 'in_progress' | 'draft' | 'pending_calibration'
     }
 ): Promise<ActionResult<void>> {
     try {
@@ -171,15 +159,17 @@ export async function updateEvaluationRUA(
                 potential_comments: data.potential_comments,
                 rua_comments: data.rua_comments,
                 overall_comments: data.overall_comments,
+                calibration_comments: data.calibration_comments,
                 status: data.status,
                 updated_at: new Date().toISOString()
             })
             .eq('id', evaluationId)
-            .eq('leader_id', auth.userId)
+            // Apenas o líder pode mandar para calibração. Admin também pode.
+            .or(`leader_id.eq.${auth.userId},org_id.eq.${auth.orgId}`)
 
         if (error) throw error
 
-        revalidatePath(`/admin/users`)
+        revalidatePath(`/admin/performance/evaluations`)
         return { success: true }
     } catch (error: any) {
         console.error('Erro em updateEvaluationRUA:', error)
@@ -239,13 +229,22 @@ export async function addEvaluationSmartGoal(
 
 /**
  * Finaliza o ciclo de avaliação e gera o SNAPSHOT da calibração (9-Box).
+ * EXCLUSIVO RH / ADMIN.
  */
-export async function closeEvaluationCycle(evaluationId: string): Promise<ActionResult<void>> {
+export async function closeEvaluationCycle(
+    evaluationId: string,
+    calibrationComments?: string
+): Promise<ActionResult<void>> {
     try {
         const auth = await requireAuth()
         const supabase = createServerSupabaseClient()
 
-        // 1. Buscar os dados atuais do ciclo e suas metas SMART
+        // 1. Segurança: Apenas Admin/RH fecha o ciclo
+        if (auth.role !== 'admin') {
+            return { success: false, error: 'Apenas o RH ou Administrador pode fechar oficialmente o ciclo de 9-Box.' }
+        }
+
+        // 2. Buscar os dados atuais do ciclo e suas metas SMART
         const { data: evalData, error: fetchError } = await supabase
             .from('performance_evaluations')
             .select('*, smart_goals:pdi_items(*)')
@@ -257,19 +256,20 @@ export async function closeEvaluationCycle(evaluationId: string): Promise<Action
             return { success: false, error: 'A nota de Potencial é obrigatória para calibrar e fechar o ciclo.' }
         }
 
-        // 2. Calcular Performance Bucket (X)
+        // 3. Calcular Performance Score & Bucket - USANDO MOTOR CENTRALIZADO
         const ruaMean = (evalData.rua_resilience + evalData.rua_utility + evalData.rua_ambition) / 3
         const smartGoals = evalData.smart_goals || []
         const hasSmart = smartGoals.length > 0
-        const completedSmart = smartGoals.filter((g: any) => g.status === 'completed').length
+        const completedSmart = smartGoals.filter((g: any) => g.status === 'completed' || g.status === 'achieved').length
         const smartProgress = hasSmart ? completedSmart / smartGoals.length : 0
 
-        const perfBucket = calculatePerformanceBucket(ruaMean, smartProgress, hasSmart)
+        const performanceScore = calculatePerformanceScore(ruaMean, smartProgress, hasSmart)
+        const perfBucket = calculatePerformanceBucket(performanceScore)
 
-        // 3. Determinar Quadrante 9-Box
+        // 4. Determinar Quadrante 9-Box
         const quadrant = calculateNineBoxQuadrant(perfBucket, evalData.potential_score)
 
-        // 4. Salvar Snapshot e Fechar
+        // 5. Salvar Snapshot e Fechar
         const { error } = await supabase
             .from('performance_evaluations')
             .update({
@@ -281,14 +281,14 @@ export async function closeEvaluationCycle(evaluationId: string): Promise<Action
                 performance_bucket: perfBucket,
                 nine_box_quadrant: quadrant,
                 calibrated_at: new Date().toISOString(),
-                calibrated_by: auth.userId
+                calibrated_by: auth.userId,
+                calibration_comments: calibrationComments
             })
             .eq('id', evaluationId)
-            .eq('leader_id', auth.userId)
 
         if (error) throw error
 
-        revalidatePath(`/admin/users`)
+        revalidatePath(`/admin/performance/evaluations`)
         return { success: true }
     } catch (error: any) {
         console.error('Erro em closeEvaluationCycle:', error)

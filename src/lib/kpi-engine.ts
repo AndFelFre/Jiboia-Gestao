@@ -44,27 +44,91 @@ export function calculateKpiAchievement(params: CalculatorPayload) {
 }
 
 /**
- * Calcula a média ponderada de uma lista de KPIs de forma segura.
- * Utiliza Number.EPSILON para mitigar imprecisões de ponto flutuante do V8.
+ * Lista simplificada de feriados nacionais brasileiros (fixos).
  */
-export function calculateWeightedAverage(kpis: WeightedKpiInput[]): number {
-    if (!kpis || kpis.length === 0) return 0;
+const BR_HOLIDAYS = [
+    '01-01', // Ano Novo
+    '04-21', // Tiradentes
+    '05-01', // Dia do Trabalho
+    '09-07', // Independência
+    '10-12', // Padroeira
+    '11-02', // Finados
+    '11-15', // Proclamação
+    '11-20', // Consciência Negra
+    '12-25', // Natal
+];
 
-    let totalScore = 0;
-    let totalWeight = 0;
+/**
+ * Normaliza a data para o fuso brasileiro (UTC-3) para evitar distorções de servidor (Vercel/UTC).
+ */
+export function getBrazilDate(date = new Date()): Date {
+    const brOffset = -3;
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    return new Date(utc + (3600000 * brOffset));
+}
 
-    kpis.forEach((kpi) => {
-        const weight = Math.max(0, kpi.weight);
-        totalScore += (kpi.achievement * weight);
-        totalWeight += weight;
-    });
+/**
+ * Calcula o número de dias úteis em um intervalo de datas.
+ * (Segunda a Sexta, descontando feriados nacionais)
+ */
+export function getBusinessDays(start: Date, end: Date): number {
+    let count = 0;
+    const curDate = new Date(start.getTime());
+    while (curDate <= end) {
+        const dayOfWeek = curDate.getDay();
+        const mmdd = `${String(curDate.getMonth() + 1).padStart(2, '0')}-${String(curDate.getDate()).padStart(2, '0')}`;
 
-    if (totalWeight === 0) return 0;
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isHoliday = BR_HOLIDAYS.includes(mmdd);
 
-    const result = totalScore / totalWeight;
+        if (!isWeekend && !isHoliday) count++;
+        curDate.setDate(curDate.getDate() + 1);
+    }
+    return count;
+}
 
-    // Arredondamento seguro para 2 casas decimais (Padrão Corporativo)
-    return Math.round((result + Number.EPSILON) * 100) / 100;
+/**
+ * Utilitário para Forecast: Dias Úteis Totais vs Decorridos do mês atual.
+ */
+export function getMonthBusinessDaysInfo() {
+    const now = getBrazilDate();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const total = getBusinessDays(startOfMonth, endOfMonth);
+    const elapsed = getBusinessDays(startOfMonth, now);
+
+    return {
+        total: Math.max(1, total),
+        elapsed: Math.max(1, elapsed)
+    };
+}
+
+/**
+ * Normaliza e calcula o Score de Performance (0 a 1)
+ * Fórmula: (RUA_Normalizado * 0.4) + (SMART_Progresso * 0.6)
+ */
+export function calculatePerformanceScore(ruaMean: number, smartProgress: number, hasSmart: boolean): number {
+    // Normalizar RUA (1-5) para (0-1)
+    // 1 -> 0, 5 -> 1 => (val - 1) / 4
+    const normalizedRua = Math.max(0, Math.min(1, (ruaMean - 1) / 4));
+
+    // SMART já vem em 0-1. Aplicamos o CAP de 150% (1.5)
+    const cappedSmart = Math.min(smartProgress, 1.5);
+
+    if (!hasSmart) return normalizedRua;
+
+    return (normalizedRua * 0.4) + (cappedSmart * 0.6);
+}
+
+/**
+ * Converte o Score de Performance em Bucket 1-3
+ * 1: < 0.6 | 2: 0.6-0.9 | 3: > 0.9
+ */
+export function calculatePerformanceBucket(score: number): number {
+    if (score < 0.6) return 1;
+    if (score > 0.9) return 3;
+    return 2;
 }
 
 /**

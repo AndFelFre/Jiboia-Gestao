@@ -43,7 +43,8 @@ export function EvaluationManagementView({ userId, evaluation }: EvaluationManag
         potential_score: evaluation?.potential_score ?? 0,
         potential_comments: evaluation?.potential_comments ?? '',
         rua_comments: evaluation?.rua_comments ?? '',
-        overall_comments: evaluation?.overall_comments ?? ''
+        overall_comments: evaluation?.overall_comments ?? '',
+        calibration_comments: evaluation?.calibration_comments ?? ''
     })
 
     // Para abertura de novo ciclo
@@ -364,7 +365,26 @@ export function EvaluationManagementView({ userId, evaluation }: EvaluationManag
                                             value={formData.potential_comments}
                                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, potential_comments: e.target.value })}
                                             disabled={isReadOnly}
-                                            className="min-h-[120px] rounded-xl"
+                                            className="min-h-[80px] rounded-xl"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                            Justificativa de Calibração (Audit)
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger><AlertCircle className="w-3 h-3 text-amber-500" /></TooltipTrigger>
+                                                    <TooltipContent><p className="text-xs">Obrigatório apenas se houver alteração na nota sugerida pelo gestor.</p></TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </label>
+                                        <Textarea
+                                            placeholder="Descreve o porquê desta calibração final..."
+                                            value={formData.calibration_comments}
+                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, calibration_comments: e.target.value })}
+                                            disabled={isReadOnly}
+                                            className="min-h-[80px] rounded-xl bg-amber-50/20 border-amber-100"
                                         />
                                     </div>
 
