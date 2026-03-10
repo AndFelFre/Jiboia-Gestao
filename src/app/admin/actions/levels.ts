@@ -5,6 +5,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { levelSchema, type LevelInput } from '@/validations/schemas'
 import { revalidatePath } from 'next/cache'
 import type { Level } from '@/types'
+import { getTenantContext, validateOrgAccess } from '@/lib/supabase/tenant-context'
 
 interface ActionResult<T = unknown> {
   success: boolean
@@ -36,21 +37,18 @@ function sanitizeError(error: unknown): string {
 
 export async function getLevels(orgId?: string): Promise<ActionResult<Level[]>> {
   try {
-    const auth = await requireAuth()
-    const supabase = createServerSupabaseClient()
+    // Determinar contexto multi-tenant
+    const { targetOrgId, auth: userAuth } = await getTenantContext(orgId)
 
-    let query = supabase
+    const supabase = userAuth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
+
+    const { data, error } = await supabase
       .from('levels')
       .select('*')
+      .eq('org_id', targetOrgId)
       .order('sequence', { ascending: true })
-
-    if (auth.role !== 'admin') {
-      query = query.eq('org_id', auth.orgId)
-    } else if (orgId) {
-      query = query.eq('org_id', orgId)
-    }
-
-    const { data, error } = await query
 
     if (error) {
       console.error('Erro ao buscar níveis:', error.message)
@@ -67,10 +65,7 @@ export async function getLevels(orgId?: string): Promise<ActionResult<Level[]>> 
 export async function createLevel(formData: LevelInput & { org_id: string }): Promise<ActionResult<Level>> {
   try {
     const auth = await requirePermission('org.manage')
-
-    if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
-      throw new Error('FORBIDDEN')
-    }
+    await validateOrgAccess(formData.org_id)
 
     const { org_id, ...levelInput } = formData;
     const validated = levelSchema.parse(levelInput)
@@ -108,15 +103,13 @@ export async function createLevel(formData: LevelInput & { org_id: string }): Pr
 
 export async function updateLevel(id: string, formData: LevelInput & { org_id: string }): Promise<ActionResult<Level>> {
   try {
-    const auth = await requirePermission('org.manage')
+    const supabase = createAdminSupabaseClient()
+    const { data: level } = await supabase.from('levels').select('org_id').eq('id', id).single()
+    if (!level) return { success: false, error: 'Nível não encontrado.' }
+    await validateOrgAccess(level.org_id)
+
     const { org_id, ...levelInput } = formData;
     const validated = levelSchema.parse(levelInput)
-    const supabase = createAdminSupabaseClient()
-
-    if (auth.role !== 'admin') {
-      const { data: level } = await supabase.from('levels').select('org_id').eq('id', id).single()
-      if (level?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
-    }
 
     const { data, error } = await supabase
       .from('levels')
@@ -148,11 +141,8 @@ export async function deleteLevel(id: string): Promise<ActionResult> {
   try {
     const auth = await requirePermission('org.manage')
     const supabase = createAdminSupabaseClient()
-
-    if (auth.role !== 'admin') {
-      const { data: level } = await supabase.from('levels').select('org_id').eq('id', id).single()
-      if (level?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
-    }
+    const { data: level } = await supabase.from('levels').select('org_id').eq('id', id).single()
+    if (level) await validateOrgAccess(level.org_id)
 
     const { error } = await supabase
       .from('levels')

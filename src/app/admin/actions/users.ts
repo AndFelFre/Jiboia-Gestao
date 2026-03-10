@@ -6,6 +6,7 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import type { User } from '@/types'
 import { logAudit, setAuditContext } from '@/lib/supabase/audit'
 import { sendWelcomeEmail } from './notifications'
+import { getTenantContext, validateOrgAccess } from '@/lib/supabase/tenant-context'
 
 interface ActionResult<T = unknown> {
   success: boolean
@@ -45,23 +46,19 @@ function sanitizeError(error: unknown): string {
 
 export async function getUsers(orgId?: string): Promise<ActionResult<User[]>> {
   try {
-    const auth = await requireAuth()
-    const supabase = createServerSupabaseClient()
+    // Determinar contexto multi-tenant
+    const { targetOrgId, auth: userAuth } = await getTenantContext(orgId)
 
-    let query = supabase
+    const supabase = userAuth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
+
+    const { data, error } = await supabase
       .from('users')
       .select('*, organizations(name), units(name), roles(name)')
-      .is('deleted_at', null) // Filtragem de ativos (Soft Delete)
+      .is('deleted_at', null)
+      .eq('org_id', targetOrgId)
       .order('full_name')
-
-    // Isolamento multi-tenant
-    if (auth.role !== 'admin') {
-      query = query.eq('org_id', auth.orgId)
-    } else if (orgId) {
-      query = query.eq('org_id', orgId)
-    }
-
-    const { data, error } = await query
 
     if (error) {
       console.error('Erro ao buscar usuários:', error)
@@ -83,10 +80,7 @@ export async function inviteUser(formData: UserInput & { org_id: string }): Prom
 
   try {
     const auth = await requirePermission('users.manage')
-
-    if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
-      throw new Error('FORBIDDEN')
-    }
+    await validateOrgAccess(formData.org_id)
 
     const { org_id, ...userInput } = formData
     const validated = userSchema.parse(userInput)

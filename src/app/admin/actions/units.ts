@@ -6,6 +6,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { unitSchema, type UnitInput } from '@/validations/schemas'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { sanitizeError } from '@/lib/utils'
+import { getTenantContext, validateOrgAccess } from '@/lib/supabase/tenant-context'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -20,24 +21,19 @@ interface ActionResult<T = unknown> {
 
 export async function getUnits(orgId?: string): Promise<ActionResult> {
   try {
-    const auth = await requireAuth()
-    const supabase = auth.role === 'admin'
+    // Determinar contexto multi-tenant
+    const { targetOrgId, auth: userAuth } = await getTenantContext(orgId)
+
+    const supabase = userAuth.role === 'admin'
       ? createAdminSupabaseClient()
       : createServerSupabaseClient()
 
-    let query = supabase
+    const { data, error } = await supabase
       .from('units')
       .select('id, org_id, name, parent_id, created_at, updated_at, organizations(name)')
-      .is('deleted_at', null) // Filtragem de ativos
+      .is('deleted_at', null)
+      .eq('org_id', targetOrgId)
       .order('name')
-
-    if (auth.role !== 'admin') {
-      query = query.eq('org_id', auth.orgId)
-    } else if (orgId) {
-      query = query.eq('org_id', orgId)
-    }
-
-    const { data, error } = await query
 
     if (error) {
       console.error('Erro ao buscar unidades:', error.message)
@@ -54,6 +50,7 @@ export async function getUnits(orgId?: string): Promise<ActionResult> {
 export async function createUnit(formData: UnitInput & { org_id: string }): Promise<ActionResult> {
   try {
     const auth = await requirePermission('unit.manage')
+    await validateOrgAccess(formData.org_id)
     const { org_id, ...unitInput } = formData
     const validated = unitSchema.parse(unitInput)
     const supabase = createAdminSupabaseClient()

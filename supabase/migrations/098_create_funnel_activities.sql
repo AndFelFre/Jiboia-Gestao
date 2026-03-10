@@ -23,29 +23,33 @@ CREATE TABLE IF NOT EXISTS public.funnel_daily_stats (
 ALTER TABLE public.funnel_daily_stats ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS
+DROP POLICY IF EXISTS "Usuários podem ver suas próprias estatísticas" ON public.funnel_daily_stats;
 CREATE POLICY "Usuários podem ver suas próprias estatísticas"
     ON public.funnel_daily_stats
     FOR SELECT
     USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Vendedores podem registrar seu suor diário" ON public.funnel_daily_stats;
 CREATE POLICY "Vendedores podem registrar seu suor diário"
     ON public.funnel_daily_stats
     FOR INSERT
     WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Vendedores podem atualizar seu suor diário" ON public.funnel_daily_stats;
 CREATE POLICY "Vendedores podem atualizar seu suor diário"
     ON public.funnel_daily_stats
     FOR UPDATE
     USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Gestores podem ver estatísticas do time" ON public.funnel_daily_stats;
 CREATE POLICY "Gestores podem ver estatísticas do time"
     ON public.funnel_daily_stats
     FOR SELECT
     USING (org_id = (SELECT org_id FROM public.users WHERE id = auth.uid()));
 
 -- Índices
-CREATE INDEX idx_funnel_daily_user_date ON public.funnel_daily_stats(user_id, date DESC);
-CREATE INDEX idx_funnel_daily_org_date ON public.funnel_daily_stats(org_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_funnel_daily_user_date ON public.funnel_daily_stats(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_funnel_daily_org_date ON public.funnel_daily_stats(org_id, date DESC);
 
 -- Comentário
 COMMENT ON TABLE public.funnel_daily_stats IS 'Registro diário de esforço (PSV) para cálculo de taxas de conversão e previsões. Nome alterado para evitar conflito.';

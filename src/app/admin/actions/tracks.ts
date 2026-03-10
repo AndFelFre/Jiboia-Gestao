@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Track, TrackStage } from '@/types'
 import { trackSchema } from '@/validations/schemas'
+import { getTenantContext, validateOrgAccess } from '@/lib/supabase/tenant-context'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 
 interface ActionResult<T = unknown> {
   success: boolean
@@ -41,21 +43,18 @@ interface TrackInput {
 
 export async function getTracks(orgId?: string): Promise<ActionResult<Track[]>> {
   try {
-    const auth = await requireAuth()
-    const supabase = createServerSupabaseClient()
+    // Determinar contexto multi-tenant
+    const { targetOrgId, auth: userAuth } = await getTenantContext(orgId)
 
-    let query = supabase
+    const supabase = userAuth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
+
+    const { data, error } = await supabase
       .from('tracks')
       .select('*, organizations(name)')
+      .eq('org_id', targetOrgId)
       .order('name')
-
-    if (auth.role !== 'admin') {
-      query = query.eq('org_id', auth.orgId)
-    } else if (orgId) {
-      query = query.eq('org_id', orgId)
-    }
-
-    const { data, error } = await query
 
     if (error) {
       console.error('Erro ao buscar trilhas:', error.message)
@@ -72,10 +71,7 @@ export async function getTracks(orgId?: string): Promise<ActionResult<Track[]>> 
 export async function createTrack(formData: TrackInput & { org_id: string }): Promise<ActionResult<Track>> {
   try {
     const auth = await requirePermission('org.manage')
-
-    if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
-      throw new Error('FORBIDDEN')
-    }
+    await validateOrgAccess(formData.org_id)
 
     const { org_id, ...trackInput } = formData
     const validated = trackSchema.parse(trackInput)
@@ -114,13 +110,12 @@ export async function updateTrack(id: string, formData: TrackInput & { org_id: s
   try {
     const auth = await requirePermission('org.manage')
     const { org_id, ...trackInput } = formData
-    const validated = trackSchema.parse(trackInput)
-    const supabase = createServerSupabaseClient()
+    const supabase = createAdminSupabaseClient()
+    const { data: track } = await supabase.from('tracks').select('org_id').eq('id', id).single()
+    if (!track) return { success: false, error: 'Trilha não encontrada.' }
+    await validateOrgAccess(track.org_id)
 
-    if (auth.role !== 'admin') {
-      const { data: track } = await supabase.from('tracks').select('org_id').eq('id', id).single()
-      if (track?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
-    }
+    const validated = trackSchema.parse(formData)
 
     const { data, error } = await supabase
       .from('tracks')
@@ -150,12 +145,9 @@ export async function updateTrack(id: string, formData: TrackInput & { org_id: s
 export async function deleteTrack(id: string): Promise<ActionResult> {
   try {
     const auth = await requirePermission('org.manage')
-    const supabase = createServerSupabaseClient()
-
-    if (auth.role !== 'admin') {
-      const { data: track } = await supabase.from('tracks').select('org_id').eq('id', id).single()
-      if (track?.org_id !== auth.orgId) throw new Error('FORBIDDEN')
-    }
+    const supabase = createAdminSupabaseClient()
+    const { data: track } = await supabase.from('tracks').select('org_id').eq('id', id).single()
+    if (track) await validateOrgAccess(track.org_id)
 
     const { error } = await supabase
       .from('tracks')

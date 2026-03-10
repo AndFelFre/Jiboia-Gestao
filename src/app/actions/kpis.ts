@@ -7,6 +7,7 @@ import { createSafeAction } from '@/lib/supabase/safe-action'
 import { calculateKpiAchievement } from '@/lib/kpi-engine'
 import { kpiDefinitionSchema, kpiTargetSchema, kpiResultSchema } from '@/validations/kpis'
 import { z } from 'zod'
+import { getTenantContext, validateOrgAccess } from '@/lib/supabase/tenant-context'
 
 // ==========================================
 // 1. Administrar KPIs (Definições)
@@ -53,18 +54,13 @@ const getKpiSchema = z.object({
 })
 
 export const getKpiDefinitions = createSafeAction(getKpiSchema, async (data, auth) => {
+    // Determinar org_id via contexto centralizado (Multi-tenant)
+    const { targetOrgId, auth: userAuth } = await getTenantContext(data.org_id)
+
     // Superadmin usa admin client (bypass RLS)
-    const supabase = auth.role === 'admin'
+    const supabase = userAuth.role === 'admin'
         ? createAdminSupabaseClient()
         : createServerSupabaseClient()
-
-    // Determinar org_id: superadmin usa o selecionado, user normal usa o próprio
-    const targetOrgId = auth.role === 'admin' ? data.org_id : auth.orgId
-
-    if (!targetOrgId) {
-        // Superadmin sem org selecionada → retorna vazio (força seleção)
-        return []
-    }
 
     const { data: kpis, error } = await supabase
         .from('kpi_definitions')
@@ -102,6 +98,7 @@ export const assignKpiTarget = createSafeAction(kpiTargetSchema, async (data, au
     }
 
     const targetOrgId = userData.org_id
+    await validateOrgAccess(targetOrgId)
 
     const { data: target, error } = await supabase
         .from('kpi_targets')

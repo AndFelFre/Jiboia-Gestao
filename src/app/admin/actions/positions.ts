@@ -6,6 +6,7 @@ import { positionSchema, type PositionInput } from '@/validations/schemas'
 import { revalidateTag } from 'next/cache'
 import { setAuditContext } from '@/lib/supabase/audit'
 import type { Position } from '@/types'
+import { getTenantContext, validateOrgAccess } from '@/lib/supabase/tenant-context'
 
 interface ActionResult<T = unknown> {
   success: boolean
@@ -31,22 +32,19 @@ function sanitizeError(error: unknown): string {
 
 export async function getPositions(orgId?: string): Promise<ActionResult<Position[]>> {
   try {
-    const auth = await requireAuth()
-    const supabase = createServerSupabaseClient()
+    // Determinar contexto multi-tenant
+    const { targetOrgId, auth: userAuth } = await getTenantContext(orgId)
 
-    let query = supabase
+    const supabase = userAuth.role === 'admin'
+      ? createAdminSupabaseClient()
+      : createServerSupabaseClient()
+
+    const { data, error } = await supabase
       .from('positions')
       .select('*, organizations(name), levels(name, sequence)')
       .is('deleted_at', null)
+      .eq('org_id', targetOrgId)
       .order('title')
-
-    if (auth.role !== 'admin') {
-      query = query.eq('org_id', auth.orgId)
-    } else if (orgId) {
-      query = query.eq('org_id', orgId)
-    }
-
-    const { data, error } = await query
 
     if (error) {
       console.error('[Action: getPositions] Erro do Supabase:', {
@@ -68,11 +66,7 @@ export async function getPositions(orgId?: string): Promise<ActionResult<Positio
 export async function createPosition(formData: PositionInput & { org_id: string }): Promise<ActionResult<Position>> {
   try {
     const auth = await requirePermission('org.manage')
-
-    // Segurança multi-tenant: usuário não-admin só cria na própria org
-    if (auth.role !== 'admin' && formData.org_id !== auth.orgId) {
-      throw new Error('FORBIDDEN')
-    }
+    await validateOrgAccess(formData.org_id)
 
     const { org_id, ...positionInput } = formData
     const validated = positionSchema.parse(positionInput)
@@ -126,8 +120,8 @@ export async function updatePosition(id: string, formData: PositionInput & { org
     // Verificar posse multi-tenant
     const { data: oldData } = await supabase.from('positions').select('org_id').eq('id', id).single()
     if (!oldData) return { success: false, error: 'Cargo não encontrado.' }
-    if (auth.role !== 'admin' && oldData.org_id !== auth.orgId) {
-      throw new Error('FORBIDDEN')
+    if (auth.role !== 'admin' || oldData.org_id !== auth.orgId) {
+      await validateOrgAccess(oldData.org_id)
     }
 
     const { data, error } = await supabase

@@ -29,19 +29,21 @@ CREATE TABLE IF NOT EXISTS public.field_evaluations (
 ALTER TABLE public.field_evaluations ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS
+DROP POLICY IF EXISTS "Usuários podem ver avaliações da sua organização" ON public.field_evaluations;
 CREATE POLICY "Usuários podem ver avaliações da sua organização"
     ON public.field_evaluations
     FOR SELECT
     USING (org_id = (SELECT org_id FROM public.users WHERE id = auth.uid()));
 
+DROP POLICY IF EXISTS "Gestores podem criar avaliações na sua organização" ON public.field_evaluations;
 CREATE POLICY "Gestores podem criar avaliações na sua organização"
     ON public.field_evaluations
     FOR INSERT
     WITH CHECK (org_id = (SELECT org_id FROM public.users WHERE id = auth.uid()));
 
 -- Índices para performance
-CREATE INDEX idx_field_eval_org_agent ON public.field_evaluations(org_id, agent_id);
-CREATE INDEX idx_field_eval_created_at ON public.field_evaluations(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_field_eval_org_agent ON public.field_evaluations(org_id, agent_id);
+CREATE INDEX IF NOT EXISTS idx_field_eval_created_at ON public.field_evaluations(created_at DESC);
 
 -- Comentários para documentação do DB
 COMMENT ON TABLE public.field_evaluations IS 'Registros de acompanhamento de rota (RUA) realizados por gestores de campo.';
