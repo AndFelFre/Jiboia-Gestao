@@ -139,3 +139,14 @@ export function getTrafficLight(achievement: number, thresholds = { green: 100, 
     if (achievement >= thresholds.yellow) return 'yellow';
     return 'red';
 }
+/**
+ * Calcula a média ponderada de uma lista de KPIs.
+ * Utilizado para consolidar o atingimento global de um vendedor ou equipe.
+ */
+export function calculateWeightedAverage(kpis: WeightedKpiInput[]): number {
+    const totalWeight = kpis.reduce((acc, kpi) => acc + kpi.weight, 0);
+    if (totalWeight === 0) return 0;
+
+    const weightedSum = kpis.reduce((acc, kpi) => acc + (kpi.achievement * kpi.weight), 0);
+    return weightedSum / totalWeight;
+}
