@@ -140,6 +140,68 @@ export function getTrafficLight(achievement: number, thresholds = { green: 100, 
     return 'red';
 }
 /**
+ * Calcula o Pacing (Ritmo Ideal) para o dia de hoje.
+ * @returns O valor que o vendedor deve ter hoje para estar "na meta".
+ */
+export function calculatePacing(targetValue: number) {
+    const { total, elapsed } = getMonthBusinessDaysInfo();
+    const idealValue = (targetValue / total) * elapsed;
+    return {
+        ideal: idealValue,
+        isAhead: (actual: number) => actual >= idealValue,
+        gap: (actual: number) => idealValue - actual
+    };
+}
+
+/**
+ * Calcula a Taxa de Conversão baseada no histórico PSV.
+ * Ex: Prospecções -> Visitas (C1), Visitas -> Propostas (C2), Propostas -> Ativos (C3).
+ */
+export function calculateConversionRate(funnelData: { prospections: number, visits: number, proposals: number, closes: number }) {
+    const pToV = funnelData.prospections > 0 ? funnelData.visits / funnelData.prospections : 0;
+    const vToP = funnelData.visits > 0 ? funnelData.proposals / funnelData.visits : 0;
+    const pToC = funnelData.proposals > 0 ? funnelData.closes / funnelData.proposals : 0;
+
+    // Taxa Final (Prospecção -> Fechamento)
+    const overall = funnelData.prospections > 0 ? funnelData.closes / funnelData.prospections : 0;
+
+    return {
+        prospectionToVisit: pToV,
+        visitToProposal: vToP,
+        proposalToClose: pToC,
+        overallConversion: overall
+    };
+}
+
+/**
+ * Gera previsão de esforço (PSV) necessário para atingir uma meta futura.
+ */
+export function getSalesForecast(targetClose: number, fallbackConversion = 0.1) {
+    // Se não houver histórico, usa 10% como padrão de mercado.
+    const funnelNeeded = targetClose / (fallbackConversion || 0.1);
+    return {
+        neededProspections: Math.ceil(funnelNeeded),
+        message: `Baseado na sua conversão de ${(fallbackConversion * 100).toFixed(1)}%, você precisa de ${Math.ceil(funnelNeeded)} prospecções para bater ${targetClose} ativos.`
+    };
+}
+
+/**
+ * Normaliza a pontuação do Formulário RUA (Escala 1 a 4) para 0 a 1.
+ * Ignora valores nulos (blocos opcionais não avaliados).
+ */
+export function normalizeRuaScore(scores: (number | null)[]): number {
+    const validScores = scores.filter((s): s is number => s !== null);
+    if (validScores.length === 0) return 0;
+
+    const sum = validScores.reduce((acc, val) => acc + val, 0);
+    const mean = sum / validScores.length;
+
+    // Escala 1 a 4 -> 0 a 1
+    // (mean - min) / (max - min) => (mean - 1) / 3
+    return Math.max(0, Math.min(1, (mean - 1) / 3));
+}
+
+/**
  * Calcula a média ponderada de uma lista de KPIs.
  * Utilizado para consolidar o atingimento global de um vendedor ou equipe.
  */
